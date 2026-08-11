@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบสร้างฟอร์มสรุปยอด Live</title>
+    <title>ระบบฟอร์มสรุปยอด Live</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #4338CA; /* สีน้ำเงินม่วงทันสมัย */
+            --primary-color: #4338CA;
             --primary-hover: #3730A3;
-            --success-color: #059669; /* สีเขียว */
+            --success-color: #059669;
             --success-hover: #047857;
             --bg-color: #F3F4F6;
             --card-bg: #FFFFFF;
@@ -25,7 +25,7 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
-            padding: 20px 15px; /* เว้นขอบจอมือถือเล็กน้อย */
+            padding: 20px 15px;
             display: flex;
             justify-content: center;
             align-items: flex-start;
@@ -35,362 +35,424 @@
         .container {
             background-color: var(--card-bg);
             width: 100%;
-            max-width: 600px; /* ขนาดกำลังดีบนคอมและแท็บเล็ต */
+            max-width: 600px;
             padding: 30px 25px;
             border-radius: 16px;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             box-sizing: border-box;
         }
 
-        h2 {
-            text-align: center;
-            color: var(--primary-color);
-            margin-top: 0;
-            margin-bottom: 25px;
-            font-weight: 600;
-            font-size: 22px;
-        }
+        h2 { text-align: center; color: var(--primary-color); margin-top: 0; margin-bottom: 20px; font-weight: 600; font-size: 22px; }
 
-        .form-group {
-            margin-bottom: 18px;
-        }
+        /* ระบบ Tabs */
+        .tabs { display: flex; gap: 5px; background-color: #E5E7EB; padding: 6px; border-radius: 12px; margin-bottom: 25px; }
+        .tab-btn { flex: 1; background-color: transparent; color: var(--text-muted); box-shadow: none; padding: 12px; border-radius: 8px; font-size: 15px; transition: all 0.3s ease; border: none; font-family: 'Prompt', sans-serif; cursor: pointer; }
+        .tab-btn:hover { background-color: rgba(255, 255, 255, 0.5); }
+        .tab-btn.active { background-color: #fff; color: var(--primary-color); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08); font-weight: 600; }
+        .tab-content { display: none; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14.5px;
-            font-weight: 500;
-            color: var(--text-main);
-        }
+        /* ฟอร์มและอินพุต */
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 8px; font-size: 14.5px; font-weight: 500; color: var(--text-main); }
+        input, select, textarea { width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 10px; font-family: 'Prompt', sans-serif; font-size: 16px; color: var(--text-main); background-color: var(--input-bg); box-sizing: border-box; transition: all 0.3s ease; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-color); background-color: #fff; box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.15); }
+        input[readonly] { background-color: var(--readonly-bg); color: var(--text-muted); cursor: not-allowed; border-color: transparent; }
+        textarea { resize: vertical; min-height: 80px; }
+        textarea.result-box { height: 450px; min-height: 450px; background-color: #F8FAFC; line-height: 1.6; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
-        /* รวมสไตล์ช่องกรอกข้อมูลให้ขนาดเท่ากันและรองรับนิ้วจิ้ม */
-        input, select {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            font-family: 'Prompt', sans-serif;
-            font-size: 16px; /* 16px ป้องกัน iOS Zoom อัตโนมัติ */
-            color: var(--text-main);
-            background-color: var(--input-bg);
-            box-sizing: border-box;
-            transition: all 0.3s ease;
-        }
+        /* ปุ่มต่างๆ */
+        button { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; font-family: 'Prompt', sans-serif; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        button:active { transform: scale(0.98); }
+        .btn-submit { background-color: var(--primary-color); color: white; margin-top: 15px; }
+        .btn-submit:hover { background-color: var(--primary-hover); }
+        .btn-add { background-color: #E0E7FF; color: var(--primary-color); box-shadow: none; border: 1px dashed var(--primary-color); margin-bottom: 15px; }
+        .btn-add:hover { background-color: #C7D2FE; }
+        .btn-copy { background-color: var(--success-color); color: white; margin-top: 15px; }
+        .btn-copy:hover { background-color: var(--success-hover); }
+        .btn-remove { background-color: #FEE2E2; color: #DC2626; padding: 12px; box-shadow: none; width: auto; font-size: 14px; }
+        
+        /* ปุ่มเพิ่มช่องไลฟ์ */
+        .btn-add-channel { background-color: #F3F4F6; color: #374151; border: 2px dashed #9CA3AF; margin-top: 5px; margin-bottom: 25px; box-shadow: none; }
+        .btn-add-channel:hover { background-color: #E5E7EB; border-color: #6B7280; color: #1F2937; }
 
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            background-color: #fff;
-            box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.15); /* เรืองแสงเวลาคลิก */
-        }
+        .result-section { display: none; margin-top: 30px; padding-top: 25px; border-top: 2px dashed #E5E7EB; }
 
-        input[readonly] {
-            background-color: var(--readonly-bg);
-            color: var(--text-muted);
-            cursor: not-allowed;
-            border-color: transparent;
-        }
+        /* ระบบกล่องแยกแต่ละช่อง */
+        .channel-block { background: #ffffff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; }
+        .channel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #F3F4F6; padding-bottom: 10px; }
+        .channel-title { font-weight: 600; color: var(--primary-color); font-size: 16px; margin: 0; }
+        .btn-remove-channel { background: transparent; color: #DC2626; box-shadow: none; padding: 5px 10px; width: auto; font-size: 14px; }
+        .btn-remove-channel:hover { background: #FEE2E2; }
 
-        /* ระบบ Grid อัตโนมัติ */
-        .two-col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
+        /* ระบบคิวไลฟ์ */
+        .slots-container { margin-bottom: 10px; }
+        .slot-row { display: grid; grid-template-columns: 2fr 1.5fr auto; gap: 10px; align-items: center; margin-bottom: 12px; background: #F9FAFB; padding: 12px; border-radius: 10px; border: 1px solid #E5E7EB; }
+        .time-group { display: flex; align-items: center; gap: 8px; }
+        .time-group span { font-size: 14px; color: var(--text-muted); }
 
-        button {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            font-family: 'Prompt', sans-serif;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        button:active {
-            transform: scale(0.98); /* เอฟเฟกต์ปุ่มยุบตอนกด */
-        }
-
-        .btn-submit {
-            background-color: var(--primary-color);
-            color: white;
-            margin-top: 15px;
-        }
-
-        .btn-submit:hover {
-            background-color: var(--primary-hover);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .result-section {
-            display: none;
-            margin-top: 30px;
-            padding-top: 25px;
-            border-top: 2px dashed #E5E7EB;
-            animation: fadeIn 0.4s ease;
-        }
-
-        textarea {
-            width: 100%;
-            height: 380px;
-            padding: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            font-family: 'Prompt', sans-serif;
-            font-size: 15px;
-            resize: none;
-            box-sizing: border-box;
-            background-color: #F8FAFC;
-            color: var(--text-main);
-            line-height: 1.5;
-        }
-
-        .btn-copy {
-            background-color: var(--success-color);
-            color: white;
-            margin-top: 15px;
-        }
-
-        .btn-copy:hover {
-            background-color: var(--success-hover);
-        }
-
-        /* ---------------------------------
-           Responsive Design สำหรับมือถือ
-        --------------------------------- */
         @media (max-width: 600px) {
-            .two-col {
-                grid-template-columns: 1fr; /* ปรับให้เรียงเป็น 1 คอลัมน์บนมือถือ */
-                gap: 0;
-            }
-            .container {
-                padding: 20px 15px;
-            }
+            .two-col { grid-template-columns: 1fr; gap: 0; }
+            .container { padding: 20px 15px; }
+            .slot-row { grid-template-columns: 1fr; } 
+            .time-group { justify-content: space-between; }
+            .channel-block { padding: 15px; }
         }
-
-        /* Animation สวยๆ ตอนแสดงผลลัพธ์ */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📝 สรุปยอด Live ประจำวัน</h2>
-    
-    <form id="reportForm">
-        <div class="form-group">
-            <label>🎬 วันที่</label>
-            <input type="date" id="date" required>
-        </div>
-        <div class="form-group">
-            <label>📌 สินค้า</label>
-            <input type="text" id="product" placeholder="เช่น เซตบำรุงผิวหน้า" required>
-        </div>
-        
-        <div class="two-col">
-            <div class="form-group">
-                <label>👩🏻 ช่อง</label>
-                <select id="channel" required>
-                    <option value="พี่ไขแอลแอฟโดยใจสายช้อป">พี่ไขแอลแอฟโดยใจสายช้อป</option>
-                    <option value="พี่โต๊ะข้างๆแอลแอฟ">พี่โต๊ะข้างๆแอลแอฟ</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>🥰 KOL</label>
-                <select id="kol" required>
-                    <option value="ของขวัญ">ของขวัญ</option>
-                    <option value="ออย">ออย</option>
-                    <option value="อันอัน">อันอัน</option>
-                    <option value="ฟางข้าว">ฟางข้าว</option>
-                    <option value="ปลา">ปลา</option>
-                    <option value="ไอซ์">ไอซ์</option>
-                    <option value="รัน">รัน</option>
-                </select>
-            </div>
-        </div>
+    <h2>📝 ระบบฟอร์มสรุปยอด Live</h2>
 
-        <div class="two-col">
-            <div class="form-group">
-                <label>ไลฟ์สด (จำนวนชั่วโมง)</label>
-                <input type="number" id="live_hours" min="1" value="1" required oninput="generateTimeOptions()">
-            </div>
-            <div class="form-group">
-                <label>เวลา</label>
-                <select id="time" required></select>
-            </div>
-        </div>
-
-        <div class="two-col">
-            <div class="form-group">
-                <label>คนสูงสุด</label>
-                <input type="number" id="max_viewers" placeholder="0" required>
-            </div>
-            <div class="form-group">
-                <label>ต่ำสุด</label>
-                <input type="number" id="min_viewers" placeholder="0" required>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>ตะกร้าhot!</label>
-            <input type="text" id="hot_basket" placeholder="ชื่อสินค้าที่ขายดีสุด" required>
-        </div>
-
-        <div class="two-col">
-            <div class="form-group">
-                <label>ขายได้ (ออเดอร์)</label>
-                <input type="number" id="orders" placeholder="0" required>
-            </div>
-            <div class="form-group">
-                <label>GMV (฿)</label>
-                <input type="number" id="gmv" step="any" placeholder="0.00" required oninput="calculateCommission()">
-            </div>
-        </div>
-
-        <div class="two-col">
-            <div class="form-group">
-                <label>Ads (฿)</label>
-                <input type="number" id="ads" step="any" placeholder="0.00" required>
-            </div>
-            <div class="form-group">
-                <label>เปอร์เซ็นต์ค่าคอม (%)</label>
-                <input type="number" id="commission_percent" step="any" placeholder="เช่น 12" required oninput="calculateCommission()">
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>💡 ยอดค่าคอมมิชชันที่ได้ (฿)</label>
-            <input type="text" id="commission_baht" readonly placeholder="ระบบคำนวณให้อัตโนมัติ">
-        </div>
-
-        <button type="button" class="btn-submit" onclick="generateReport()">🚀 สร้างสรุปข้อมูล</button>
-    </form>
-
-    <div class="result-section" id="resultSection">
-        <label>✨ ผลลัพธ์ (แก้ไขข้อความก่อนคัดลอกได้)</label>
-        <textarea id="outputResult" readonly></textarea>
-        <button type="button" class="btn-copy" id="copyBtn" onclick="copyToClipboard()">📋 คัดลอกข้อความ</button>
+    <div class="tabs">
+        <button type="button" class="tab-btn active" onclick="switchTab('hourly')">⏱️ สรุปรายชั่วโมง</button>
+        <button type="button" class="tab-btn" onclick="switchTab('daily')">📅 สรุปทั้งวัน</button>
     </div>
+    
+    <!-- ===================================== -->
+    <!-- TAB 1: สรุปรายชั่วโมง (ของเดิม) -->
+    <!-- ===================================== -->
+    <div id="tab-hourly" class="tab-content active">
+        <form>
+            <div class="form-group"><label>🎬 วันที่</label><input type="date" id="date1" required></div>
+            <div class="form-group"><label>📌 สินค้า</label><input type="text" id="product1" required></div>
+            <div class="two-col">
+                <div class="form-group">
+                    <label>👩🏻 ช่อง</label>
+                    <select id="channel1" required>
+                        <option value="พี่ไขแอลแอฟโดยใจสายช้อป">พี่ไขแอลแอฟโดยใจสายช้อป</option>
+                        <option value="พี่โต๊ะข้างๆแอลแอฟ">พี่โต๊ะข้างๆแอลแอฟ</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>🥰 KOL</label>
+                    <select id="kol1" required>
+                        <option value="ของขวัญ">ของขวัญ</option><option value="ออย">ออย</option>
+                        <option value="อันอัน">อันอัน</option><option value="ฟางข้าว">ฟางข้าว</option>
+                        <option value="ปลา">ปลา</option><option value="ไอซ์">ไอซ์</option><option value="รัน">รัน</option>
+                    </select>
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="form-group"><label>ไลฟ์สด (จำนวนชั่วโมง)</label><input type="number" id="live_hours1" min="1" value="1" required oninput="generateTimeOptions()"></div>
+                <div class="form-group"><label>เวลา</label><select id="time1" required></select></div>
+            </div>
+            <div class="two-col">
+                <div class="form-group"><label>คนสูงสุด</label><input type="number" id="max_viewers1" required></div>
+                <div class="form-group"><label>ต่ำสุด</label><input type="number" id="min_viewers1" required></div>
+            </div>
+            <div class="form-group"><label>ตะกร้าhot!</label><input type="text" id="hot_basket1" required></div>
+            <div class="two-col">
+                <div class="form-group"><label>ขายได้ (ออเดอร์)</label><input type="number" id="orders1" required></div>
+                <div class="form-group"><label>GMV (฿)</label><input type="number" id="gmv1" step="any" required oninput="calculateCommission()"></div>
+            </div>
+            <div class="two-col">
+                <div class="form-group"><label>Ads (฿)</label><input type="number" id="ads1" step="any" required></div>
+                <div class="form-group"><label>เปอร์เซ็นต์ค่าคอม (%)</label><input type="number" id="commission_percent1" step="any" required oninput="calculateCommission()"></div>
+            </div>
+            <div class="form-group"><label>💡 ยอดค่าคอมมิชชัน (฿)</label><input type="text" id="commission_baht1" readonly></div>
+            
+            <button type="button" class="btn-submit" onclick="generateHourlyReport()">🚀 สร้างสรุปรายชั่วโมง</button>
+        </form>
+
+        <div class="result-section" id="resultSection1">
+            <label>✨ ผลลัพธ์ (แก้ไขก่อนคัดลอกได้)</label>
+            <textarea id="outputResult1" class="result-box" readonly></textarea>
+            <button type="button" class="btn-copy" id="copyBtn1" onclick="copyToClipboard('outputResult1', 'copyBtn1')">📋 คัดลอกข้อความ</button>
+        </div>
+    </div>
+
+    <!-- ===================================== -->
+    <!-- TAB 2: สรุปทั้งวัน / ตารางคิวไลฟ์ (แบบใหม่รองรับหลายช่อง) -->
+    <!-- ===================================== -->
+    <div id="tab-daily" class="tab-content">
+        <form>
+            <!-- วันที่เลือกครั้งเดียวใช้ร่วมกันทุกช่อง -->
+            <div class="form-group"><label>📅 วันที่</label><input type="date" id="date2" required></div>
+            
+            <!-- คอนเทนเนอร์เก็บกล่องช่องไลฟ์ทั้งหมด -->
+            <div id="channels-container">
+                <!-- กล่องช่องไลฟ์ที่ 1 -->
+                <div class="channel-block">
+                    <div class="channel-header">
+                        <h4 class="channel-title">📺 ข้อมูลช่องไลฟ์</h4>
+                    </div>
+                    <div class="form-group">
+                        <label>📍 ช่อง</label>
+                        <select class="val-channel" required>
+                            <option value="LF โดนใจสายช้อป">LF โดนใจสายช้อป</option>
+                            <option value="พี่โต๊ะข้างข้างแอลเอฟ">พี่โต๊ะข้างข้างแอลเอฟ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📌 ข้อมูลแบรนด์และค่าคอมมิชชัน</label>
+                        <input type="text" class="val-brand" placeholder="เช่น Yajina (แบรนด์ยิงแอด) Com 15%" required>
+                    </div>
+                    <div class="form-group">
+                        <label>🎉 โปรโมชั่น (เว้นว่างได้ถ้าไม่มี)</label>
+                        <textarea class="val-promo" placeholder="เช่น โปรโมชั่น กลูต้าวอนจู ราคาเต็ม 290 บาท เหลือ 200 บาท"></textarea>
+                    </div>
+
+                    <label style="margin-top:20px; font-weight:600; color:var(--primary-color);">🕒 ตารางคิวไลฟ์</label>
+                    <div class="slots-container">
+                        <div class="slot-row">
+                            <div class="time-group">
+                                <input type="time" class="slot-start" required><span>ถึง</span><input type="time" class="slot-end" required>
+                            </div>
+                            <select class="slot-kol" required>
+                                <option value="" disabled selected>เลือก KOL</option>
+                                <option value="ของขวัญ">ของขวัญ</option><option value="ออย">ออย</option>
+                                <option value="อันอัน">อันอัน</option><option value="ฟางข้าว">ฟางข้าว</option>
+                                <option value="ปลา">ปลา</option><option value="ไอซ์">ไอซ์</option><option value="รัน">รัน</option>
+                            </select>
+                            <div style="width: 44px;"></div> <!-- เว้นที่ว่างให้เท่ากับปุ่มลบ -->
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add" onclick="addSlot(this)">+ เพิ่มคิวไลฟ์</button>
+
+                    <div class="form-group">
+                        <label>📝 Note / หมายเหตุเพิ่มเติม</label>
+                        <textarea class="val-note" placeholder="เช่น ไม่มีการพักไลฟ์รันยาว 10 ชม..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ปุ่มสำหรับเพิ่มกล่องช่องที่ 2, 3... -->
+            <button type="button" class="btn-add-channel" onclick="addChannel()">➕ เพิ่มช่องไลฟ์ (กรณีมีหลายช่องใน 1 วัน)</button>
+            
+            <button type="button" class="btn-submit" onclick="generateDailyReport()">🚀 สร้างสรุปตารางทั้งวัน</button>
+        </form>
+
+        <div class="result-section" id="resultSection2">
+            <label>✨ ผลลัพธ์ตารางไลฟ์ (แก้ไขก่อนคัดลอกได้)</label>
+            <textarea id="outputResult2" class="result-box" readonly></textarea>
+            <button type="button" class="btn-copy" id="copyBtn2" onclick="copyToClipboard('outputResult2', 'copyBtn2')">📋 คัดลอกข้อความ</button>
+        </div>
+    </div>
+
 </div>
 
 <script>
-    function calculateCommission() {
-        const gmv = parseFloat(document.getElementById('gmv').value) || 0;
-        const percent = parseFloat(document.getElementById('commission_percent').value) || 0;
-        
-        if (gmv > 0 && percent > 0) {
-            const result = (gmv * percent) / 100;
-            document.getElementById('commission_baht').value = parseFloat(result.toFixed(2));
-        } else {
-            document.getElementById('commission_baht').value = '';
-        }
-    }
-
-    function generateTimeOptions() {
-        const hours = parseInt(document.getElementById('live_hours').value) || 1;
-        const timeSelect = document.getElementById('time');
-        const selectedValue = timeSelect.value;
-        
-        timeSelect.innerHTML = ''; 
-
-        for (let i = 0; i < 24; i++) {
-            let start = i.toString().padStart(2, '0') + ':00';
-            let endHour = i + hours;
-            let end = (endHour >= 24 ? endHour - 24 : endHour).toString().padStart(2, '0') + ':00';
-            
-            let option = document.createElement('option');
-            option.value = `${start} - ${end}`;
-            option.text = `${start} - ${end}`;
-            timeSelect.appendChild(option);
-        }
-        
-        if (selectedValue) {
-            timeSelect.value = selectedValue;
-        }
-    }
-
+    // ==========================================
+    // ฟังก์ชันทั่วไป
+    // ==========================================
     window.onload = function() {
         generateTimeOptions();
-        document.getElementById('date').valueAsDate = new Date();
+        document.getElementById('date1').valueAsDate = new Date();
+        document.getElementById('date2').valueAsDate = new Date();
     };
 
-    function formatDateThai(dateString) {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
-        const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-        
-        const dayName = days[date.getDay()];
-        const dayNum = date.getDate();
-        const monthName = months[date.getMonth()];
-        const year = date.getFullYear() + 543;
-        
-        return `${dayName} ที่ ${dayNum} ${monthName} ${year}`;
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
     }
 
-    function generateReport() {
-        const dateThai = formatDateThai(document.getElementById('date').value);
-        const product = document.getElementById('product').value;
-        const channel = document.getElementById('channel').value;
-        const kol = document.getElementById('kol').value;
-        const live_hours = document.getElementById('live_hours').value || 0;
-        const time = document.getElementById('time').value;
-        const max_viewers = document.getElementById('max_viewers').value;
-        const min_viewers = document.getElementById('min_viewers').value;
-        const hot_basket = document.getElementById('hot_basket').value;
-        const orders = document.getElementById('orders').value;
-        const gmv = document.getElementById('gmv').value || 0;
-        const ads = document.getElementById('ads').value || 0;
-        const commission_percent = document.getElementById('commission_percent').value || 0;
-        const commission_baht = document.getElementById('commission_baht').value || 0;
-
-        const template = `🎬 ${dateThai}
-📌 สินค้า - ${product}
-👩🏻 ช่อง - ${channel}
-🥰 KOL - ${kol}
-
-ไลฟ์สด        : ${live_hours} ชั่วโมง
-เวลา            : ${time}
-คนสูงสุด      : ${max_viewers}
-ต่ำสุด          : ${min_viewers}
-ตะกร้าhot!  : ${hot_basket}
-ขายได้        : ${orders} ออเดอร์
-GMV          : ${gmv} ฿
-Ads            : ${ads} ฿
-ค่าคอม       : ${commission_baht} ฿
-
-💸 ยอดขายรวมรอบ KOL ${kol} ${live_hours} Hrs. : ${gmv} ฿ | Com ${commission_percent} % : ${commission_baht} ฿`;
-
-        document.getElementById('outputResult').value = template;
-        const resultSection = document.getElementById('resultSection');
-        resultSection.style.display = 'block';
-        
-        // เลื่อนหน้าจอลงมาที่ผลลัพธ์อัตโนมัติ (นุ่มนวล)
-        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        
-        const copyBtn = document.getElementById('copyBtn');
-        copyBtn.innerHTML = '📋 คัดลอกข้อความ';
-        copyBtn.style.backgroundColor = 'var(--success-color)';
-    }
-
-    function copyToClipboard() {
-        const copyText = document.getElementById("outputResult");
+    function copyToClipboard(inputId, btnId) {
+        const copyText = document.getElementById(inputId);
         copyText.removeAttribute('readonly');
         copyText.select();
         copyText.setSelectionRange(0, 99999);
         navigator.clipboard.writeText(copyText.value).then(() => {
-            const copyBtn = document.getElementById('copyBtn');
+            const copyBtn = document.getElementById(btnId);
             copyBtn.innerHTML = '✅ คัดลอกสำเร็จแล้ว!';
             copyBtn.style.backgroundColor = 'var(--success-hover)';
+            setTimeout(() => {
+                copyBtn.innerHTML = '📋 คัดลอกข้อความ';
+                copyBtn.style.backgroundColor = 'var(--success-color)';
+            }, 3000);
         });
         copyText.setAttribute('readonly', true);
+    }
+
+    // ==========================================
+    // โค้ดสำหรับ TAB 1 (รายชั่วโมง)
+    // ==========================================
+    function calculateCommission() {
+        const gmv = parseFloat(document.getElementById('gmv1').value) || 0;
+        const percent = parseFloat(document.getElementById('commission_percent1').value) || 0;
+        if (gmv > 0 && percent > 0) {
+            document.getElementById('commission_baht1').value = parseFloat(((gmv * percent) / 100).toFixed(2));
+        } else {
+            document.getElementById('commission_baht1').value = '';
+        }
+    }
+
+    function generateTimeOptions() {
+        const hours = parseInt(document.getElementById('live_hours1').value) || 1;
+        const timeSelect = document.getElementById('time1');
+        const selectedValue = timeSelect.value;
+        timeSelect.innerHTML = ''; 
+        for (let i = 0; i < 24; i++) {
+            let start = i.toString().padStart(2, '0') + ':00';
+            let endHour = i + hours;
+            let end = (endHour >= 24 ? endHour - 24 : endHour).toString().padStart(2, '0') + ':00';
+            let option = document.createElement('option');
+            option.value = `${start} - ${end}`; option.text = `${start} - ${end}`;
+            timeSelect.appendChild(option);
+        }
+        if (selectedValue) timeSelect.value = selectedValue;
+    }
+
+    function generateHourlyReport() {
+        const d = new Date(document.getElementById('date1').value);
+        const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+        const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        const dateThai = d.getTime() ? `${days[d.getDay()]} ที่ ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}` : '';
+        
+        const template = `🎬 ${dateThai}
+📌 สินค้า - ${document.getElementById('product1').value}
+👩🏻 ช่อง - ${document.getElementById('channel1').value}
+🥰 KOL - ${document.getElementById('kol1').value}
+
+ไลฟ์สด        : ${document.getElementById('live_hours1').value} ชั่วโมง
+เวลา            : ${document.getElementById('time1').value}
+คนสูงสุด      : ${document.getElementById('max_viewers1').value}
+ต่ำสุด          : ${document.getElementById('min_viewers1').value}
+ตะกร้าhot!  : ${document.getElementById('hot_basket1').value}
+ขายได้        : ${document.getElementById('orders1').value} ออเดอร์
+GMV          : ${document.getElementById('gmv1').value} ฿
+Ads            : ${document.getElementById('ads1').value} ฿
+ค่าคอม       : ${document.getElementById('commission_baht1').value} ฿
+
+💸 ยอดขายรวมรอบ KOL ${document.getElementById('kol1').value} ${document.getElementById('live_hours1').value} Hrs. : ${document.getElementById('gmv1').value} ฿ | Com ${document.getElementById('commission_percent1').value} % : ${document.getElementById('commission_baht1').value} ฿`;
+
+        document.getElementById('outputResult1').value = template;
+        document.getElementById('resultSection1').style.display = 'block';
+        document.getElementById('resultSection1').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ==========================================
+    // โค้ดสำหรับ TAB 2 (สรุปทั้งวัน / หลายช่อง)
+    // ==========================================
+    
+    // ฟังก์ชันเพิ่มบรรทัดคิวไลฟ์ (ให้อยู่ในกล่องช่องที่กดปุ่ม)
+    function addSlot(btnElement) {
+        const container = btnElement.previousElementSibling; // หา div .slots-container ที่อยู่บนปุ่ม
+        const row = document.createElement('div');
+        row.className = 'slot-row';
+        row.innerHTML = `
+            <div class="time-group">
+                <input type="time" class="slot-start" required><span>ถึง</span><input type="time" class="slot-end" required>
+            </div>
+            <select class="slot-kol" required>
+                <option value="" disabled selected>เลือก KOL</option>
+                <option value="ของขวัญ">ของขวัญ</option><option value="ออย">ออย</option>
+                <option value="อันอัน">อันอัน</option><option value="ฟางข้าว">ฟางข้าว</option>
+                <option value="ปลา">ปลา</option><option value="ไอซ์">ไอซ์</option><option value="รัน">รัน</option>
+            </select>
+            <button type="button" class="btn-remove" onclick="this.parentElement.remove()">🗑️</button>
+        `;
+        container.appendChild(row);
+    }
+
+    // ฟังก์ชันเพิ่มกล่องช่องใหม่
+    function addChannel() {
+        const container = document.getElementById('channels-container');
+        const newChannel = document.createElement('div');
+        newChannel.className = 'channel-block';
+        
+        // โครงสร้างกล่องช่องใหม่ (มีปุ่มลบช่อง)
+        newChannel.innerHTML = `
+            <div class="channel-header">
+                <h4 class="channel-title">📺 ข้อมูลช่องไลฟ์เพิ่มเติม</h4>
+                <button type="button" class="btn-remove-channel" onclick="this.parentElement.parentElement.remove()">❌ ลบช่องนี้</button>
+            </div>
+            <div class="form-group">
+                <label>📍 ช่อง</label>
+                <select class="val-channel" required>
+                    <option value="LF โดนใจสายช้อป">LF โดนใจสายช้อป</option>
+                    <option value="พี่โต๊ะข้างข้างแอลเอฟ">พี่โต๊ะข้างข้างแอลเอฟ</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>📌 ข้อมูลแบรนด์และค่าคอมมิชชัน</label>
+                <input type="text" class="val-brand" placeholder="เช่น Yajina (แบรนด์ยิงแอด) Com 15%" required>
+            </div>
+            <div class="form-group">
+                <label>🎉 โปรโมชั่น (เว้นว่างได้ถ้าไม่มี)</label>
+                <textarea class="val-promo" placeholder="เช่น โปรโมชั่น กลูต้าวอนจู ราคาเต็ม 290 บาท เหลือ 200 บาท"></textarea>
+            </div>
+            <label style="margin-top:20px; font-weight:600; color:var(--primary-color);">🕒 ตารางคิวไลฟ์</label>
+            <div class="slots-container">
+                <div class="slot-row">
+                    <div class="time-group">
+                        <input type="time" class="slot-start" required><span>ถึง</span><input type="time" class="slot-end" required>
+                    </div>
+                    <select class="slot-kol" required>
+                        <option value="" disabled selected>เลือก KOL</option>
+                        <option value="ของขวัญ">ของขวัญ</option><option value="ออย">ออย</option>
+                        <option value="อันอัน">อันอัน</option><option value="ฟางข้าว">ฟางข้าว</option>
+                        <option value="ปลา">ปลา</option><option value="ไอซ์">ไอซ์</option><option value="รัน">รัน</option>
+                    </select>
+                    <div style="width: 44px;"></div>
+                </div>
+            </div>
+            <button type="button" class="btn-add" onclick="addSlot(this)">+ เพิ่มคิวไลฟ์</button>
+            <div class="form-group">
+                <label>📝 Note / หมายเหตุเพิ่มเติม</label>
+                <textarea class="val-note" placeholder="เช่น ไม่มีการพักไลฟ์รันยาว 10 ชม..."></textarea>
+            </div>
+        `;
+        container.appendChild(newChannel);
+    }
+
+    function generateDailyReport() {
+        const d = new Date(document.getElementById('date2').value);
+        const dateFormatted = d.getTime() ? `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}` : '';
+
+        // ดึงกล่องช่องทั้งหมดมาประมวลผล
+        const channelBlocks = document.querySelectorAll('.channel-block');
+        let finalOutputArray = [];
+
+        channelBlocks.forEach((block) => {
+            const channel = block.querySelector('.val-channel').value;
+            const brand = block.querySelector('.val-brand').value;
+            const promo = block.querySelector('.val-promo').value;
+            const note = block.querySelector('.val-note').value;
+
+            // วันที่จะถูกดึงมาใส่ในทุกๆ ช่องตามแพตเทิร์น
+            let template = `📅  ${dateFormatted}  \n📍ช่อง ${channel} \n📌  ${brand} \n`;
+            
+            if (promo.trim() !== '') {
+                template += `🎉 ${promo} \n`;
+            }
+            
+            template += `\n`; 
+
+            // ดึงคิวไลฟ์เฉพาะในกล่องช่องนี้
+            const slots = block.querySelectorAll('.slot-row');
+            slots.forEach(slot => {
+                const start = slot.querySelector('.slot-start').value;
+                const end = slot.querySelector('.slot-end').value;
+                const kol = slot.querySelector('.slot-kol').value;
+                
+                if (start && end && kol) {
+                    const startFormatted = start.replace(':', '.');
+                    const endFormatted = end.replace(':', '.');
+                    template += `${startFormatted}-${endFormatted}  ${kol}\n`;
+                }
+            });
+
+            if (note.trim() !== '') {
+                template += `\nNote : ${note}\n`;
+            }
+
+            finalOutputArray.push(template.trim());
+        });
+
+        // นำข้อมูลของแต่ละช่องมาต่อกัน โดยคั่นด้วย 🩶
+        const separator = '\n\n🩶🩶🩶🩶🩶🩶🩶🩶🩶🩶🩶🩶\n\n';
+        const finalResultString = finalOutputArray.join(separator);
+
+        // แสดงผล
+        document.getElementById('outputResult2').value = finalResultString;
+        document.getElementById('resultSection2').style.display = 'block';
+        document.getElementById('resultSection2').scrollIntoView({ behavior: 'smooth' });
     }
 </script>
 
