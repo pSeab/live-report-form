@@ -44,6 +44,24 @@
 
         h2 { text-align: center; color: var(--primary-color); margin-top: 0; margin-bottom: 20px; font-weight: 600; font-size: 22px; }
 
+        /* ระบบ Tip & Trick สีพาสเทล */
+        .tip-box {
+            background-color: #FDF4FF; /* สีพาสเทลชมพูอมม่วง */
+            border-left: 4px solid #D946EF;
+            color: #701A75;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.5;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            animation: fadeIn 0.6s ease;
+        }
+        .tip-icon { font-size: 18px; margin-top: -2px; }
+
         /* ระบบ Tabs */
         .tabs { display: flex; gap: 5px; background-color: #E5E7EB; padding: 6px; border-radius: 12px; margin-bottom: 25px; }
         .tab-btn { flex: 1; background-color: transparent; color: var(--text-muted); box-shadow: none; padding: 12px; border-radius: 8px; font-size: 15px; transition: all 0.3s ease; border: none; font-family: 'Prompt', sans-serif; cursor: pointer; }
@@ -54,7 +72,7 @@
 
         /* ฟอร์มและอินพุต */
         .form-group { margin-bottom: 18px; }
-        label { display: block; margin-bottom: 8px; font-size: 14.5px; font-weight: 500; color: var(--text-main); }
+        label { display: block; margin-bottom: 8px; font-size: 14.5px; font-weight: 500; color: var(--text-main); display: flex; align-items: center; }
         input, select, textarea { width: 100%; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 10px; font-family: 'Prompt', sans-serif; font-size: 16px; color: var(--text-main); background-color: var(--input-bg); box-sizing: border-box; transition: all 0.3s ease; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary-color); background-color: #fff; box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.15); }
         input[readonly] { background-color: var(--readonly-bg); color: var(--text-muted); cursor: not-allowed; border-color: transparent; }
@@ -73,6 +91,26 @@
         .btn-copy:hover { background-color: var(--success-hover); }
         .btn-remove { background-color: #FEE2E2; color: #DC2626; padding: 12px; box-shadow: none; width: auto; font-size: 14px; }
         
+        /* ปุ่มเปิดเครื่องคิดเลขข้าง Label */
+        .btn-mini-calc { background: #E0E7FF; color: var(--primary-color); border: none; border-radius: 6px; padding: 4px 10px; font-size: 14px; cursor: pointer; margin-left: 8px; box-shadow: none; width: auto; }
+        .btn-mini-calc:hover { background: #C7D2FE; }
+
+        /* Modal เครื่องคิดเลข */
+        .calc-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .calc-container { background: #fff; padding: 20px; border-radius: 16px; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: fadeIn 0.2s ease; }
+        .calc-display { width: 100%; background: #F3F4F6; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; font-size: 28px; text-align: right; margin-bottom: 15px; font-family: monospace; box-sizing: border-box; overflow: hidden; white-space: nowrap; color: var(--text-main); font-weight: 500; }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
+        .calc-btn { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 15px 0; font-size: 18px; font-weight: 500; cursor: pointer; text-align: center; color: var(--text-main); box-shadow: none; width: 100%; }
+        .calc-btn:hover { background: #E5E7EB; }
+        .calc-btn.op { background: #E0E7FF; color: var(--primary-color); }
+        .calc-btn.op:hover { background: #C7D2FE; }
+        .calc-btn.clear { background: #FEE2E2; color: #DC2626; }
+        .calc-btn.eq { background: var(--primary-color); color: white; grid-column: span 4; }
+        .calc-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .calc-actions button { margin: 0; padding: 12px; font-size: 14px; }
+        .calc-submit { background-color: var(--success-color); color: white; }
+        .calc-close { background-color: #E5E7EB; color: var(--text-main); }
+
         /* ปุ่มเพิ่มช่องไลฟ์ */
         .btn-add-channel { background-color: #F3F4F6; color: #374151; border: 2px dashed #9CA3AF; margin-top: 5px; margin-bottom: 25px; box-shadow: none; }
         .btn-add-channel:hover { background-color: #E5E7EB; border-color: #6B7280; color: #1F2937; }
@@ -107,13 +145,19 @@
 <div class="container">
     <h2>📝 ระบบฟอร์มสรุปยอด Live</h2>
 
+    <!-- กล่อง Tip & Trick จะแสดงตรงนี้ -->
+    <div id="tipBox" class="tip-box">
+        <span class="tip-icon">✨</span>
+        <div id="tipText">กำลังโหลดเคล็ดลับ...</div>
+    </div>
+
     <div class="tabs">
         <button type="button" class="tab-btn active" onclick="switchTab('hourly')">⏱️ สรุปรายชั่วโมง</button>
         <button type="button" class="tab-btn" onclick="switchTab('daily')">📅 สรุปทั้งวัน</button>
     </div>
     
     <!-- ===================================== -->
-    <!-- TAB 1: สรุปรายชั่วโมง (ของเดิม) -->
+    <!-- TAB 1: สรุปรายชั่วโมง -->
     <!-- ===================================== -->
     <div id="tab-hourly" class="tab-content active">
         <form>
@@ -146,8 +190,14 @@
             </div>
             <div class="form-group"><label>ตะกร้าhot!</label><input type="text" id="hot_basket1" required></div>
             <div class="two-col">
-                <div class="form-group"><label>ขายได้ (ออเดอร์)</label><input type="number" id="orders1" required></div>
-                <div class="form-group"><label>GMV (฿)</label><input type="number" id="gmv1" step="any" required oninput="calculateCommission()"></div>
+                <div class="form-group">
+                    <label>ขายได้ (ออเดอร์)</label>
+                    <input type="number" id="orders1" min="0" step="1" onkeypress="return event.charCode >= 48 && event.charCode <= 57" required>
+                </div>
+                <div class="form-group">
+                    <label>GMV (฿) <button type="button" class="btn-mini-calc" onclick="openCalc('gmv1')">🧮</button></label>
+                    <input type="number" id="gmv1" step="any" required oninput="calculateCommission()">
+                </div>
             </div>
             <div class="two-col">
                 <div class="form-group"><label>Ads (฿)</label><input type="number" id="ads1" step="any" required></div>
@@ -166,16 +216,13 @@
     </div>
 
     <!-- ===================================== -->
-    <!-- TAB 2: สรุปทั้งวัน / ตารางคิวไลฟ์ (แบบใหม่รองรับหลายช่อง) -->
+    <!-- TAB 2: สรุปทั้งวัน / ตารางคิวไลฟ์ -->
     <!-- ===================================== -->
     <div id="tab-daily" class="tab-content">
         <form>
-            <!-- วันที่เลือกครั้งเดียวใช้ร่วมกันทุกช่อง -->
             <div class="form-group"><label>📅 วันที่</label><input type="date" id="date2" required></div>
             
-            <!-- คอนเทนเนอร์เก็บกล่องช่องไลฟ์ทั้งหมด -->
             <div id="channels-container">
-                <!-- กล่องช่องไลฟ์ที่ 1 -->
                 <div class="channel-block">
                     <div class="channel-header">
                         <h4 class="channel-title">📺 ข้อมูลช่องไลฟ์</h4>
@@ -208,7 +255,7 @@
                                 <option value="อันอัน">อันอัน</option><option value="ฟางข้าว">ฟางข้าว</option>
                                 <option value="ปลา">ปลา</option><option value="ไอซ์">ไอซ์</option><option value="รัน">รัน</option>
                             </select>
-                            <div style="width: 44px;"></div> <!-- เว้นที่ว่างให้เท่ากับปุ่มลบ -->
+                            <div style="width: 44px;"></div>
                         </div>
                     </div>
                     <button type="button" class="btn-add" onclick="addSlot(this)">+ เพิ่มคิวไลฟ์</button>
@@ -220,7 +267,6 @@
                 </div>
             </div>
 
-            <!-- ปุ่มสำหรับเพิ่มกล่องช่องที่ 2, 3... -->
             <button type="button" class="btn-add-channel" onclick="addChannel()">➕ เพิ่มช่องไลฟ์ (กรณีมีหลายช่องใน 1 วัน)</button>
             
             <button type="button" class="btn-submit" onclick="generateDailyReport()">🚀 สร้างสรุปตารางทั้งวัน</button>
@@ -232,14 +278,66 @@
             <button type="button" class="btn-copy" id="copyBtn2" onclick="copyToClipboard('outputResult2', 'copyBtn2')">📋 คัดลอกข้อความ</button>
         </div>
     </div>
+</div>
 
+<!-- ===================================== -->
+<!-- ส่วน Modal เครื่องคิดเลข -->
+<!-- ===================================== -->
+<div id="calcModal" class="calc-modal">
+    <div class="calc-container">
+        <div class="calc-display" id="calcDisplay">0</div>
+        <div class="calc-grid">
+            <button type="button" class="calc-btn" onclick="calcInput('7')">7</button>
+            <button type="button" class="calc-btn" onclick="calcInput('8')">8</button>
+            <button type="button" class="calc-btn" onclick="calcInput('9')">9</button>
+            <button type="button" class="calc-btn op" onclick="calcInput('/')">÷</button>
+            
+            <button type="button" class="calc-btn" onclick="calcInput('4')">4</button>
+            <button type="button" class="calc-btn" onclick="calcInput('5')">5</button>
+            <button type="button" class="calc-btn" onclick="calcInput('6')">6</button>
+            <button type="button" class="calc-btn op" onclick="calcInput('*')">×</button>
+            
+            <button type="button" class="calc-btn" onclick="calcInput('1')">1</button>
+            <button type="button" class="calc-btn" onclick="calcInput('2')">2</button>
+            <button type="button" class="calc-btn" onclick="calcInput('3')">3</button>
+            <button type="button" class="calc-btn op" onclick="calcInput('-')">-</button>
+            
+            <button type="button" class="calc-btn clear" onclick="calcInput('C')">C</button>
+            <button type="button" class="calc-btn" onclick="calcInput('0')">0</button>
+            <button type="button" class="calc-btn" onclick="calcInput('.')">.</button>
+            <button type="button" class="calc-btn op" onclick="calcInput('+')">+</button>
+            
+            <button type="button" class="calc-btn eq" onclick="calcInput('=')">= คำนวณผลลัพธ์</button>
+        </div>
+        <div class="calc-actions">
+            <button type="button" class="calc-close" onclick="closeCalc()">❌ ยกเลิก</button>
+            <button type="button" class="calc-submit" onclick="submitCalc()">✅ ตกลง (ใส่ฟอร์ม)</button>
+        </div>
+    </div>
 </div>
 
 <script>
     // ==========================================
+    // ฟังก์ชันจัดการ Tip & Trick
+    // ==========================================
+    const tips = [
+        '<b>💡 วิธีหายอด GMV (฿):</b> ดูยอดจาก "หน้าม่วง" ของเราที่ส่งล่าสุดในกลุ่ม แล้วนำไปลบกับยอดของคนก่อนหน้าได้เลย',
+        '<b>🧮 คิดเลขไวไม่ต้องสลับแอป:</b> กดไอคอนเครื่องคิดเลขเพื่อหาค่า GMV (฿) เมื่อกดตกลง ระบบจะกรอกตัวเลขลงช่องให้อัตโนมัติ!',
+        '<b>📅 วันที่อัตโนมัติ:</b> ระบบจะตั้งค่าวันที่เป็น "วันนี้" ให้ล่วงหน้าเสมอ เพื่อความรวดเร็วในการเปิดฟอร์ม',
+        '<b>📈 เช็กยอดคนดูสูงสุด-ต่ำสุด:</b> สามารถดูได้จากกราฟเส้นสีเขียวอมฟ้า (Performance trends) ที่มุมซ้ายบนของหน้าม่วง',
+        '<b>📋 สรุปยอดง่ายในคลิกเดียว:</b> เมื่อกรอกข้อมูลครบแล้ว กด "สร้างสรุปรายชั่วโมง" แล้วคลิกคัดลอกข้อความไปส่งงานได้ทันที!'
+    ];
+
+    function showRandomTip() {
+        const randomIndex = Math.floor(Math.random() * tips.length);
+        document.getElementById('tipText').innerHTML = tips[randomIndex];
+    }
+
+    // ==========================================
     // ฟังก์ชันทั่วไป
     // ==========================================
     window.onload = function() {
+        showRandomTip(); // แสดง Tip ตอนโหลดหน้า
         generateTimeOptions();
         document.getElementById('date1').valueAsDate = new Date();
         document.getElementById('date2').valueAsDate = new Date();
@@ -267,6 +365,76 @@
             }, 3000);
         });
         copyText.setAttribute('readonly', true);
+    }
+
+    // ==========================================
+    // โค้ดสำหรับเครื่องคิดเลข
+    // ==========================================
+    let currentCalcTarget = '';
+    let calcValue = '0';
+    let isCalculated = false;
+
+    function openCalc(targetId) {
+        currentCalcTarget = targetId;
+        calcValue = '0';
+        isCalculated = false;
+        updateCalcDisplay();
+        document.getElementById('calcModal').style.display = 'flex';
+    }
+
+    function closeCalc() {
+        document.getElementById('calcModal').style.display = 'none';
+    }
+
+    function updateCalcDisplay() {
+        document.getElementById('calcDisplay').innerText = calcValue;
+    }
+
+    function calcInput(val) {
+        if (val === 'C') {
+            calcValue = '0';
+            isCalculated = false;
+        } else if (val === '=') {
+            try {
+                let expr = calcValue.replace(/÷/g, '/').replace(/×/g, '*');
+                calcValue = eval(expr).toString();
+                isCalculated = true;
+            } catch (e) {
+                calcValue = 'Error';
+                setTimeout(() => { calcValue = '0'; updateCalcDisplay(); }, 1000);
+            }
+        } else {
+            if (isCalculated && !['+', '-', '*', '/'].includes(val)) {
+                calcValue = val;
+                isCalculated = false;
+            } else {
+                if (calcValue === '0' && val !== '.') {
+                    calcValue = val;
+                } else {
+                    if (val === '*') val = '×';
+                    if (val === '/') val = '÷';
+                    calcValue += val;
+                }
+                isCalculated = false;
+            }
+        }
+        updateCalcDisplay();
+    }
+
+    function submitCalc() {
+        try {
+            let expr = calcValue.replace(/÷/g, '/').replace(/×/g, '*');
+            let result = eval(expr).toString();
+            
+            if (result !== 'NaN' && result !== 'Infinity' && result !== 'Error') {
+                const targetInput = document.getElementById(currentCalcTarget);
+                targetInput.value = result;
+                targetInput.dispatchEvent(new Event('input')); // อัปเดตค่าคอมให้อัตโนมัติด้วย
+            }
+        } catch (e) {
+            console.log("Calculation error on submit");
+        }
+        closeCalc();
     }
 
     // ==========================================
@@ -329,10 +497,8 @@ Ads            : ${document.getElementById('ads1').value} ฿
     // ==========================================
     // โค้ดสำหรับ TAB 2 (สรุปทั้งวัน / หลายช่อง)
     // ==========================================
-    
-    // ฟังก์ชันเพิ่มบรรทัดคิวไลฟ์ (ให้อยู่ในกล่องช่องที่กดปุ่ม)
     function addSlot(btnElement) {
-        const container = btnElement.previousElementSibling; // หา div .slots-container ที่อยู่บนปุ่ม
+        const container = btnElement.previousElementSibling; 
         const row = document.createElement('div');
         row.className = 'slot-row';
         row.innerHTML = `
@@ -350,13 +516,11 @@ Ads            : ${document.getElementById('ads1').value} ฿
         container.appendChild(row);
     }
 
-    // ฟังก์ชันเพิ่มกล่องช่องใหม่
     function addChannel() {
         const container = document.getElementById('channels-container');
         const newChannel = document.createElement('div');
         newChannel.className = 'channel-block';
         
-        // โครงสร้างกล่องช่องใหม่ (มีปุ่มลบช่อง)
         newChannel.innerHTML = `
             <div class="channel-header">
                 <h4 class="channel-title">📺 ข้อมูลช่องไลฟ์เพิ่มเติม</h4>
@@ -405,7 +569,6 @@ Ads            : ${document.getElementById('ads1').value} ฿
         const d = new Date(document.getElementById('date2').value);
         const dateFormatted = d.getTime() ? `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}` : '';
 
-        // ดึงกล่องช่องทั้งหมดมาประมวลผล
         const channelBlocks = document.querySelectorAll('.channel-block');
         let finalOutputArray = [];
 
@@ -415,7 +578,6 @@ Ads            : ${document.getElementById('ads1').value} ฿
             const promo = block.querySelector('.val-promo').value;
             const note = block.querySelector('.val-note').value;
 
-            // วันที่จะถูกดึงมาใส่ในทุกๆ ช่องตามแพตเทิร์น
             let template = `📅  ${dateFormatted}  \n📍ช่อง ${channel} \n📌  ${brand} \n`;
             
             if (promo.trim() !== '') {
@@ -424,7 +586,6 @@ Ads            : ${document.getElementById('ads1').value} ฿
             
             template += `\n`; 
 
-            // ดึงคิวไลฟ์เฉพาะในกล่องช่องนี้
             const slots = block.querySelectorAll('.slot-row');
             slots.forEach(slot => {
                 const start = slot.querySelector('.slot-start').value;
@@ -445,11 +606,9 @@ Ads            : ${document.getElementById('ads1').value} ฿
             finalOutputArray.push(template.trim());
         });
 
-        // นำข้อมูลของแต่ละช่องมาต่อกัน โดยคั่นด้วย 🩶
         const separator = '\n\n🩶🩶🩶🩶🩶🩶🩶🩶🩶🩶🩶🩶\n\n';
         const finalResultString = finalOutputArray.join(separator);
 
-        // แสดงผล
         document.getElementById('outputResult2').value = finalResultString;
         document.getElementById('resultSection2').style.display = 'block';
         document.getElementById('resultSection2').scrollIntoView({ behavior: 'smooth' });
