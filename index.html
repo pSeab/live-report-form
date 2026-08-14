@@ -888,7 +888,116 @@
 
     // ==========================================
     // คัดลอกสรุปรายชั่วโมง + ส่งข้อมูลไป Google Sheet
+    //
+    // เวอร์ชันแก้ไข:
+    // 1) ยังคงส่ง POST แบบเดิม เพื่อไม่กระทบระบบเดิม
+    // 2) เพิ่ม requestId ประจำการส่งแต่ละครั้ง
+    // 3) หลัง POST จะตรวจผลจาก Apps Script ด้วย JSONP
+    // 4) จะแสดง "ส่งสำเร็จ" เมื่อ Apps Script ยืนยันว่าเขียน Sheet สำเร็จจริงเท่านั้น
     // ==========================================
+    const SHEET_SYNC_CONFIRM_TIMEOUT_MS = 20000;
+    const SHEET_SYNC_POLL_INTERVAL_MS = 700;
+
+    function createSheetSyncRequestId() {
+        let randomPart = '';
+
+        try {
+            if (window.crypto && window.crypto.getRandomValues) {
+                const values = new Uint32Array(2);
+                window.crypto.getRandomValues(values);
+                randomPart = Array.from(values)
+                    .map(value => value.toString(36))
+                    .join('');
+            }
+        } catch (error) {
+            console.warn('crypto random unavailable:', error);
+        }
+
+        if (!randomPart) {
+            randomPart = Math.random().toString(36).slice(2, 12);
+        }
+
+        return `live_${Date.now()}_${randomPart}`;
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // ใช้ JSONP เพื่อตรวจสถานะจาก Apps Script โดยไม่ติดข้อจำกัด CORS
+    function requestSheetSyncStatus(requestId) {
+        return new Promise((resolve, reject) => {
+            const callbackName = `__liveSheetSync_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+            const script = document.createElement('script');
+            let finished = false;
+
+            const cleanup = () => {
+                if (finished) return;
+                finished = true;
+                clearTimeout(timer);
+                script.remove();
+                try {
+                    delete window[callbackName];
+                } catch (error) {
+                    window[callbackName] = undefined;
+                }
+            };
+
+            window[callbackName] = (status) => {
+                cleanup();
+                resolve(status);
+            };
+
+            script.onerror = () => {
+                cleanup();
+                reject(new Error('ไม่สามารถเชื่อมต่อเพื่อตรวจสอบสถานะ Google Sheet ได้'));
+            };
+
+            const query = new URLSearchParams({
+                action: 'status',
+                requestId: requestId,
+                callback: callbackName,
+                _: Date.now().toString()
+            });
+
+            const separator = GOOGLE_SHEET_WEB_APP_URL.includes('?') ? '&' : '?';
+            script.src = `${GOOGLE_SHEET_WEB_APP_URL}${separator}${query.toString()}`;
+            script.async = true;
+
+            const timer = setTimeout(() => {
+                cleanup();
+                reject(new Error('หมดเวลารอการตอบกลับจาก Google Apps Script'));
+            }, 4500);
+
+            document.head.appendChild(script);
+        });
+    }
+
+    async function waitForSheetSyncResult(requestId) {
+        const deadline = Date.now() + SHEET_SYNC_CONFIRM_TIMEOUT_MS;
+        let lastError = null;
+
+        while (Date.now() < deadline) {
+            try {
+                const status = await requestSheetSyncStatus(requestId);
+
+                if (status && status.done === true && status.result) {
+                    return status.result;
+                }
+            } catch (error) {
+                lastError = error;
+            }
+
+            await sleep(SHEET_SYNC_POLL_INTERVAL_MS);
+        }
+
+        const error = new Error(
+            'ส่งคำขอแล้ว แต่ระบบยังยืนยันการบันทึกจาก Google Apps Script ไม่ได้ กรุณาตรวจ Deployment และหน้า Executions'
+        );
+        error.cause = lastError;
+        throw error;
+    }
+
     async function copyHourlyAndSync() {
         // กันผู้ใช้กดปุ่มซ้ำระหว่างที่ request เดิมยังทำงานอยู่
         if (isHourlySyncing) return;
@@ -928,7 +1037,11 @@
             copyText.setAttribute('readonly', true);
         }
 
+        const requestId = createSheetSyncRequestId();
+
         // 2) รวบรวมข้อมูลจากฟอร์มตาม A:J ที่กำหนดไว้
+        // requestId เป็นข้อมูลเสริมสำหรับตรวจสอบผลการส่งเท่านั้น
+        // ไม่ถูกนำไปเพิ่มเป็นคอลัมน์ใน Google Sheet
         const payload = {
             date: document.getElementById('date1').value,
             time: document.getElementById('time1').value,
@@ -939,7 +1052,8 @@
             gmv: document.getElementById('gmv1').value,
             orders: document.getElementById('orders1').value,
             commissionPercent: document.getElementById('commission_percent1').value,
-            ads: document.getElementById('ads1').value
+            ads: document.getElementById('ads1').value,
+            requestId: requestId
         };
 
         // ถ้ายังไม่ได้ใส่ URL จะคัดลอกได้ตามปกติ แต่ไม่ส่ง Sheet
@@ -956,13 +1070,14 @@
 
         copyBtn.innerHTML = '⏳ คัดลอกแล้ว • กำลังส่งข้อมูล...';
         copyBtn.style.backgroundColor = 'var(--success-hover)';
-        setHourlySyncStatus('warning', 'กำลังส่งข้อมูลไป Google Sheet กรุณาอย่ากดปุ่มซ้ำ');
+        setHourlySyncStatus('warning', 'กำลังส่งข้อมูลไป Google Sheet และรอการยืนยันผล กรุณาอย่ากดปุ่มซ้ำ');
 
         try {
-            // ใช้ URLSearchParams ให้เป็น simple POST request
-            // และใช้ no-cors เพราะ Apps Script ContentService ส่ง response ผ่าน redirect
+            // ส่งแบบ simple POST + no-cors เหมือนระบบเดิม
+            // จากนั้นตรวจผลจริงผ่าน requestId ด้วย JSONP
             const body = new URLSearchParams();
             body.append('payload', JSON.stringify(payload));
+            body.append('requestId', requestId);
 
             await fetch(GOOGLE_SHEET_WEB_APP_URL, {
                 method: 'POST',
@@ -970,20 +1085,35 @@
                 body: body
             });
 
-            copyBtn.innerHTML = '✅ คัดลอกแล้ว • ส่งข้อมูลแล้ว';
+            const sheetResult = await waitForSheetSyncResult(requestId);
+
+            if (!sheetResult || sheetResult.success !== true) {
+                throw new Error(
+                    sheetResult && sheetResult.message
+                        ? sheetResult.message
+                        : 'Google Apps Script แจ้งว่าบันทึกข้อมูลไม่สำเร็จ'
+                );
+            }
+
+            const actionText =
+                sheetResult.action === 'updated'
+                    ? `อัปเดตแถวเดิมแล้ว (แถว ${sheetResult.row})`
+                    : `เพิ่มแถวใหม่แล้ว (แถว ${sheetResult.row})`;
+
+            copyBtn.innerHTML = '✅ คัดลอกแล้ว • Sheet ยืนยันแล้ว';
             copyBtn.style.backgroundColor = 'var(--success-hover)';
             setHourlySyncStatus(
                 'success',
-                `ส่งข้อมูลรอบ ${payload.time} ของ ${payload.kol} ไปยัง Google Sheet แล้ว — ถ้ามีรอบเดิม ระบบฝั่ง Sheet จะอัปเดตแถวเดิม`
+                `Google Sheet ยืนยันแล้ว: ${actionText} • รอบ ${payload.time} • ${payload.kol}`
             );
 
         } catch (error) {
             console.error('Google Sheet sync error:', error);
-            copyBtn.innerHTML = '⚠️ คัดลอกแล้ว • ส่ง Sheet ไม่สำเร็จ';
+            copyBtn.innerHTML = '⚠️ คัดลอกแล้ว • Sheet ยังไม่ยืนยัน';
             copyBtn.style.backgroundColor = '#D97706';
             setHourlySyncStatus(
                 'error',
-                'คัดลอกข้อความแล้ว แต่ส่ง Google Sheet ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง'
+                `คัดลอกข้อความแล้ว แต่ Google Sheet ยังไม่ยืนยันการบันทึก: ${error.message || error}`
             );
         } finally {
             // ล็อกปุ่มต่ออีกเล็กน้อย ป้องกันการกดซ้ำแบบเผลอ ๆ
