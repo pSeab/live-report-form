@@ -162,7 +162,36 @@
     <div id="tab-hourly" class="tab-content active">
         <form>
             <div class="form-group"><label>🎬 วันที่</label><input type="date" id="date1" required></div>
-            <div class="form-group"><label>📌 สินค้า</label><input type="text" id="product1" required></div>
+            <div class="form-group">
+                <label>📌 สินค้า</label>
+                <select id="product1" required onchange="applyProductCommission()">
+                    <option value="" data-commission="" disabled selected>เลือกสินค้า</option>
+
+                    <!-- =====================================================
+                         รายการสินค้า + เปอร์เซ็นต์ค่าคอม
+
+                         วิธี "เพิ่มสินค้า":
+                         คัดลอกบรรทัด <option> ด้านล่าง แล้วแก้ 2 จุด
+                         1) value="ชื่อสินค้า"
+                         2) data-commission="เปอร์เซ็นต์ค่าคอม"
+
+                         ตัวอย่าง:
+                         <option value="สินค้าใหม่" data-commission="18">สินค้าใหม่ — 18%</option>
+
+                         วิธี "ลบสินค้า":
+                         ลบบรรทัด <option> ของสินค้านั้นออกได้เลย
+
+                         หมายเหตุ:
+                         ตัวเลขใน data-commission ไม่ต้องใส่เครื่องหมาย %
+                         ===================================================== -->
+                    <option value="Yes Care" data-commission="12">Yes Care — 12%</option>
+                    <option value="Enchant" data-commission="20">Enchant — 20%</option>
+                    <option value="Lipo Glow" data-commission="15">Lipo Glow — 15%</option>
+                    <option value="Kari Skin" data-commission="21">Kari Skin — 21%</option>
+                    <option value="Jimmy Young" data-commission="10">Jimmy Young — 10%</option>
+                    <!-- ===================================================== -->
+                </select>
+            </div>
             <div class="two-col">
                 <div class="form-group">
                     <label>👩🏻 ช่อง</label>
@@ -201,7 +230,11 @@
             </div>
             <div class="two-col">
                 <div class="form-group"><label>Ads (฿)</label><input type="number" id="ads1" step="any" required></div>
-                <div class="form-group"><label>เปอร์เซ็นต์ค่าคอม (%)</label><input type="number" id="commission_percent1" step="any" required oninput="calculateCommission()"></div>
+                <div class="form-group">
+                    <label>เปอร์เซ็นต์ค่าคอม (%)</label>
+                    <!-- ค่านี้จะถูกใส่อัตโนมัติเมื่อเลือกสินค้า -->
+                    <input type="number" id="commission_percent1" step="any" required readonly>
+                </div>
             </div>
             <div class="form-group"><label>💡 ยอดค่าคอมมิชชัน (฿)</label><input type="text" id="commission_baht1" readonly></div>
             
@@ -337,7 +370,7 @@
     // ตั้งค่า Google Sheet Web App
     // ==========================================
     // นำ Web app URL ที่ลงท้ายด้วย /exec จาก Google Apps Script มาใส่ตรงนี้
-    const GOOGLE_SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby-exO8Awl_FILWlJqYx7hqZUdJJi-m61FLcTovRY_Y5jRtggbY3cCjUFCzPPeFnWsTBg/exec';
+    const GOOGLE_SHEET_WEB_APP_URL = 'ใส่_WEB_APP_URL_ตรงนี้';
 
     // ==========================================
     // ฟังก์ชันทั่วไป
@@ -525,6 +558,28 @@
     // ==========================================
     // โค้ดสำหรับ TAB 1 (รายชั่วโมง)
     // ==========================================
+    // ==========================================
+    // ใส่เปอร์เซ็นต์ค่าคอมอัตโนมัติตามสินค้าที่เลือก
+    // ค่าเปอร์เซ็นต์ถูกเก็บไว้ใน data-commission ของ <option>
+    // ==========================================
+    function applyProductCommission() {
+        const productSelect = document.getElementById('product1');
+        const commissionInput = document.getElementById('commission_percent1');
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+
+        if (!selectedOption) {
+            commissionInput.value = '';
+            calculateCommission();
+            return;
+        }
+
+        const commissionRate = selectedOption.dataset.commission || '';
+        commissionInput.value = commissionRate;
+
+        // คำนวณยอดค่าคอมมิชชันใหม่ทันที
+        calculateCommission();
+    }
+
     function calculateCommission() {
         const gmv = parseFloat(document.getElementById('gmv1').value) || 0;
         const percent = parseFloat(document.getElementById('commission_percent1').value) || 0;
