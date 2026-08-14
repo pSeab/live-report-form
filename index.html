@@ -219,6 +219,105 @@
             color: var(--primary-color);
             font-weight: 600;
         }
+        .footer-credit {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            padding: 6px 10px;
+            margin: 0;
+            border-radius: 999px;
+            color: var(--text-muted);
+            font: inherit;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        .footer-credit:hover {
+            background: #F3F4F6;
+            transform: translateY(-1px);
+        }
+        .footer-credit:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
+        /* Popup เครดิตผู้จัดทำ */
+        .credit-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            padding: 20px;
+            background: rgba(17, 24, 39, 0.55);
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        }
+        .credit-modal.is-open { display: flex; }
+        .credit-card {
+            width: min(100%, 380px);
+            position: relative;
+            background: #fff;
+            border-radius: 18px;
+            padding: 28px 24px 24px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.22);
+            animation: creditPopIn 0.2s ease;
+        }
+        .credit-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 14px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: #EEF2FF;
+            font-size: 30px;
+        }
+        .credit-card h3 {
+            margin: 0 0 8px;
+            color: var(--text-main);
+            font-size: 21px;
+        }
+        .credit-card p {
+            margin: 0;
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+        .credit-card .credit-name {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+        .credit-close-x {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 50%;
+            background: #F3F4F6;
+            color: #6B7280;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: none;
+        }
+        .credit-close-x:hover { background: #E5E7EB; }
+        .credit-ok {
+            width: 100%;
+            margin-top: 20px;
+            padding: 11px 16px;
+            border: 0;
+            border-radius: 10px;
+            background: var(--primary-color);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        @keyframes creditPopIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
 
         @media (max-width: 600px) {
             .two-col { grid-template-columns: 1fr; gap: 0; }
@@ -429,8 +528,21 @@
 
     <!-- Footer เครดิตผู้จัดทำ -->
     <footer class="site-footer">
-        Made with ❤️ by <strong>a2t</strong>
+        <button type="button" class="footer-credit" onclick="openCreditModal()" aria-haspopup="dialog" aria-controls="creditModal">
+            Made with ❤️ by <strong>a2t</strong>
+        </button>
     </footer>
+</div>
+
+<!-- Popup เครดิตผู้จัดทำ -->
+<div id="creditModal" class="credit-modal" role="dialog" aria-modal="true" aria-labelledby="creditModalTitle" onclick="creditBackdropClose(event)">
+    <div class="credit-card" role="document">
+        <button type="button" class="credit-close-x" onclick="closeCreditModal()" aria-label="ปิด Popup">×</button>
+        <div class="credit-icon" aria-hidden="true">❤️</div>
+        <h3 id="creditModalTitle">Made with ❤️ by <span class="credit-name">a2t</span></h3>
+        <p>ระบบฟอร์มสรุปยอด Live<br>ขอบคุณที่แวะมาใช้งานครับ ✨</p>
+        <button type="button" class="credit-ok" onclick="closeCreditModal()">ปิดหน้าต่าง</button>
+    </div>
 </div>
 
 <!-- ===================================== -->
@@ -470,6 +582,33 @@
 </div>
 
 <script>
+    // ==========================================
+    // Popup เครดิตผู้จัดทำ
+    // ==========================================
+    function openCreditModal() {
+        const modal = document.getElementById('creditModal');
+        modal.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => modal.querySelector('.credit-close-x')?.focus(), 0);
+    }
+
+    function closeCreditModal() {
+        const modal = document.getElementById('creditModal');
+        modal.classList.remove('is-open');
+        document.body.style.overflow = '';
+        document.querySelector('.footer-credit')?.focus();
+    }
+
+    function creditBackdropClose(event) {
+        if (event.target.id === 'creditModal') closeCreditModal();
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && document.getElementById('creditModal')?.classList.contains('is-open')) {
+            closeCreditModal();
+        }
+    });
+
     // ==========================================
     // ฟังก์ชันจัดการ Tip & Trick
     // ==========================================
