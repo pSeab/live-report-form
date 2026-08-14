@@ -211,7 +211,7 @@
         <div class="result-section" id="resultSection1">
             <label>✨ ผลลัพธ์ (แก้ไขก่อนคัดลอกได้)</label>
             <textarea id="outputResult1" class="result-box" readonly></textarea>
-            <button type="button" class="btn-copy" id="copyBtn1" onclick="copyToClipboard('outputResult1', 'copyBtn1')">📋 คัดลอกข้อความ</button>
+            <button type="button" class="btn-copy" id="copyBtn1" onclick="copyHourlyAndSync()">📋 คัดลอกข้อความ</button>
         </div>
     </div>
 
@@ -334,6 +334,12 @@
     }
 
     // ==========================================
+    // ตั้งค่า Google Sheet Web App
+    // ==========================================
+    // นำ Web app URL ที่ลงท้ายด้วย /exec จาก Google Apps Script มาใส่ตรงนี้
+    const GOOGLE_SHEET_WEB_APP_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnSC5uqk6rwu-Nv4AiG3pIkofPwHRQtV8yjUC6Bl8uv1KVKiZ5gGl8x_cv07KClTjnqiPtqfPo7GyJGDs7c6g2InNsbi491myXjZPOmw5WTfeqNrz0-RWFt4ng4FWj33SHq20nDbT_EsO1kub_R1t3m8rCyBwWaudnrK8FCWOVkdCmlNhWOU_DuUqbL3sa_83SrRu2G_Ecvpga5xpwERLP_pSJ-o9n2e1IF_WT1Zpu36St9w4Z808B2BDkDBbGlVX1pmIAXLXa8UTu34qHilwQRfnuaRaw&lib=MGR-6tWvt9lhBEnDmigi5cJB1-AXMI4fR';
+
+    // ==========================================
     // ฟังก์ชันทั่วไป
     // ==========================================
     window.onload = function() {
@@ -365,6 +371,85 @@
             }, 3000);
         });
         copyText.setAttribute('readonly', true);
+    }
+
+    // ==========================================
+    // คัดลอกสรุปรายชั่วโมง + ส่งข้อมูลไป Google Sheet
+    // ==========================================
+    async function copyHourlyAndSync() {
+        const copyText = document.getElementById('outputResult1');
+        const copyBtn = document.getElementById('copyBtn1');
+
+        // 1) คัดลอกข้อความก่อนเสมอ
+        try {
+            await navigator.clipboard.writeText(copyText.value);
+        } catch (error) {
+            // Fallback สำหรับ Browser บางตัว
+            copyText.removeAttribute('readonly');
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            copyText.setAttribute('readonly', true);
+        }
+
+        // 2) รวบรวมข้อมูลจากฟอร์มตาม A:J ที่กำหนดไว้
+        const payload = {
+            date: document.getElementById('date1').value,
+            time: document.getElementById('time1').value,
+            liveHours: document.getElementById('live_hours1').value,
+            channel: document.getElementById('channel1').value,
+            product: document.getElementById('product1').value,
+            kol: document.getElementById('kol1').value,
+            gmv: document.getElementById('gmv1').value,
+            orders: document.getElementById('orders1').value,
+            commissionPercent: document.getElementById('commission_percent1').value,
+            ads: document.getElementById('ads1').value
+        };
+
+        // ถ้ายังไม่ได้ใส่ URL จะคัดลอกได้ตามปกติ แต่ไม่ส่ง Sheet
+        if (
+            !GOOGLE_SHEET_WEB_APP_URL ||
+            GOOGLE_SHEET_WEB_APP_URL.includes('ใส่_WEB_APP_URL_ตรงนี้')
+        ) {
+            copyBtn.innerHTML = '⚠️ คัดลอกแล้ว แต่ยังไม่ได้ตั้งค่า Sheet URL';
+            copyBtn.style.backgroundColor = '#D97706';
+            setTimeout(() => resetHourlyCopyButton(), 3500);
+            return;
+        }
+
+        copyBtn.disabled = true;
+        copyBtn.innerHTML = '⏳ คัดลอกแล้ว • กำลังส่งข้อมูล...';
+        copyBtn.style.backgroundColor = 'var(--success-hover)';
+
+        try {
+            // ใช้ URLSearchParams ให้เป็น simple POST request
+            // และใช้ no-cors เพราะ Apps Script ContentService ส่ง response ผ่าน redirect
+            const body = new URLSearchParams();
+            body.append('payload', JSON.stringify(payload));
+
+            await fetch(GOOGLE_SHEET_WEB_APP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: body
+            });
+
+            copyBtn.innerHTML = '✅ คัดลอกแล้ว • ส่งคำขอไป Sheet แล้ว';
+            copyBtn.style.backgroundColor = 'var(--success-hover)';
+
+        } catch (error) {
+            console.error('Google Sheet sync error:', error);
+            copyBtn.innerHTML = '⚠️ คัดลอกแล้ว • ส่ง Sheet ไม่สำเร็จ';
+            copyBtn.style.backgroundColor = '#D97706';
+        } finally {
+            setTimeout(() => resetHourlyCopyButton(), 3500);
+        }
+    }
+
+    function resetHourlyCopyButton() {
+        const copyBtn = document.getElementById('copyBtn1');
+        copyBtn.disabled = false;
+        copyBtn.innerHTML = '📋 คัดลอกข้อความ';
+        copyBtn.style.backgroundColor = 'var(--success-color)';
     }
 
     // ==========================================
