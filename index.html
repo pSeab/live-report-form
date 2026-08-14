@@ -80,6 +80,53 @@
         textarea.result-box { height: 450px; min-height: 450px; background-color: #F8FAFC; line-height: 1.6; }
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
+        /* ==========================================
+           ระบบช่วยป้องกันการกรอกข้อมูลผิด (TAB รายชั่วโมง)
+           ========================================== */
+        .validation-box {
+            display: none;
+            background: #FEF2F2;
+            border: 1px solid #FCA5A5;
+            border-left: 4px solid #DC2626;
+            color: #991B1B;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .validation-box.show { display: block; }
+        .validation-box strong { display: block; margin-bottom: 4px; }
+        .validation-box ul { margin: 4px 0 0 18px; padding: 0; }
+
+        input.input-error,
+        select.input-error,
+        textarea.input-error {
+            border-color: #DC2626 !important;
+            background-color: #FEF2F2 !important;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.10) !important;
+        }
+
+        .sync-status {
+            display: none;
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 9px;
+            font-size: 13.5px;
+            line-height: 1.5;
+            text-align: center;
+        }
+        .sync-status.show { display: block; }
+        .sync-status.success { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+        .sync-status.warning { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+        .sync-status.error { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+
+        button:disabled {
+            opacity: 0.72;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
         /* ปุ่มต่างๆ */
         button { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; font-family: 'Prompt', sans-serif; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
         button:active { transform: scale(0.98); }
@@ -160,7 +207,14 @@
     <!-- TAB 1: สรุปรายชั่วโมง -->
     <!-- ===================================== -->
     <div id="tab-hourly" class="tab-content active">
-        <form>
+        <form id="hourlyForm" novalidate>
+
+            <!--
+                กล่องนี้จะแสดงรายการที่ผู้ใช้กรอกไม่ครบ/กรอกผิด
+                JavaScript จะเปิด-ปิดให้อัตโนมัติ
+            -->
+            <div id="hourlyValidationBox" class="validation-box" role="alert" aria-live="assertive"></div>
+
             <div class="form-group"><label>🎬 วันที่</label><input type="date" id="date1" required></div>
             <div class="form-group">
                 <label>📌 สินค้า</label>
@@ -210,12 +264,12 @@
                 </div>
             </div>
             <div class="two-col">
-                <div class="form-group"><label>ไลฟ์สด (จำนวนชั่วโมง)</label><input type="number" id="live_hours1" min="1" value="1" required oninput="generateTimeOptions()"></div>
+                <div class="form-group"><label>ไลฟ์สด (จำนวนชั่วโมง)</label><input type="number" id="live_hours1" min="1" max="24" step="1" value="1" required oninput="generateTimeOptions()"></div>
                 <div class="form-group"><label>เวลา</label><select id="time1" required></select></div>
             </div>
             <div class="two-col">
-                <div class="form-group"><label>คนสูงสุด</label><input type="number" id="max_viewers1" required></div>
-                <div class="form-group"><label>ต่ำสุด</label><input type="number" id="min_viewers1" required></div>
+                <div class="form-group"><label>คนสูงสุด</label><input type="number" id="max_viewers1" min="0" step="1" required></div>
+                <div class="form-group"><label>ต่ำสุด</label><input type="number" id="min_viewers1" min="0" step="1" required></div>
             </div>
             <div class="form-group"><label>ตะกร้าhot!</label><input type="text" id="hot_basket1" required></div>
             <div class="two-col">
@@ -225,11 +279,11 @@
                 </div>
                 <div class="form-group">
                     <label>GMV (฿) <button type="button" class="btn-mini-calc" onclick="openCalc('gmv1')">🧮</button></label>
-                    <input type="number" id="gmv1" step="any" required oninput="calculateCommission()">
+                    <input type="number" id="gmv1" min="0" step="any" required oninput="calculateCommission()">
                 </div>
             </div>
             <div class="two-col">
-                <div class="form-group"><label>Ads (฿)</label><input type="number" id="ads1" step="any" required></div>
+                <div class="form-group"><label>Ads (฿)</label><input type="number" id="ads1" min="0" step="any" required></div>
                 <div class="form-group">
                     <label>เปอร์เซ็นต์ค่าคอม (%)</label>
                     <!-- ค่านี้จะถูกใส่อัตโนมัติเมื่อเลือกสินค้า -->
@@ -245,6 +299,7 @@
             <label>✨ ผลลัพธ์ (แก้ไขก่อนคัดลอกได้)</label>
             <textarea id="outputResult1" class="result-box" readonly></textarea>
             <button type="button" class="btn-copy" id="copyBtn1" onclick="copyHourlyAndSync()">📋 คัดลอกข้อความ</button>
+            <div id="hourlySyncStatus" class="sync-status" role="status" aria-live="polite"></div>
         </div>
     </div>
 
@@ -380,6 +435,9 @@
         generateTimeOptions();
         document.getElementById('date1').valueAsDate = new Date();
         document.getElementById('date2').valueAsDate = new Date();
+
+        // เมื่อผู้ใช้กลับมาแก้ช่องที่เคยผิด ให้เอากรอบแดงออกทันที
+        setupHourlyValidationListeners();
     };
 
     function switchTab(tabId) {
@@ -407,11 +465,228 @@
     }
 
     // ==========================================
+    // ระบบ Validation + ป้องกันการกดซ้ำ
+    // ==========================================
+    let isHourlySyncing = false;
+
+    function setupHourlyValidationListeners() {
+        const form = document.getElementById('hourlyForm');
+        if (!form) return;
+
+        form.querySelectorAll('input, select, textarea').forEach(field => {
+            field.addEventListener('input', () => clearHourlyFieldError(field));
+            field.addEventListener('change', () => clearHourlyFieldError(field));
+        });
+    }
+
+    function clearHourlyFieldError(field) {
+        field.classList.remove('input-error');
+    }
+
+    function clearHourlyValidationUI() {
+        document.querySelectorAll('#hourlyForm .input-error').forEach(field => {
+            field.classList.remove('input-error');
+        });
+
+        const box = document.getElementById('hourlyValidationBox');
+        box.classList.remove('show');
+        box.innerHTML = '';
+    }
+
+    function showHourlyValidationErrors(errors) {
+        const box = document.getElementById('hourlyValidationBox');
+
+        box.innerHTML = `
+            <strong>⚠️ กรุณาตรวจข้อมูลก่อนค่ะ</strong>
+            <ul>${errors.map(item => `<li>${item.message}</li>`).join('')}</ul>
+        `;
+        box.classList.add('show');
+
+        errors.forEach(item => {
+            const field = document.getElementById(item.id);
+            if (field) field.classList.add('input-error');
+        });
+
+        // พาไปยังช่องแรกที่ต้องแก้ เพื่อไม่ให้ผู้ใช้ต้องหาเอง
+        const firstField = document.getElementById(errors[0].id);
+        if (firstField) {
+            firstField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => firstField.focus(), 300);
+        }
+    }
+
+    function validateHourlyForm() {
+        clearHourlyValidationUI();
+
+        const errors = [];
+        const value = id => document.getElementById(id).value.trim();
+        const numberValue = id => Number(document.getElementById(id).value);
+
+        // ------------------------------
+        // 1) ช่องที่ห้ามว่าง
+        // ------------------------------
+        const requiredFields = [
+            ['date1', 'กรุณาเลือกวันที่'],
+            ['product1', 'กรุณาเลือกสินค้า'],
+            ['channel1', 'กรุณาเลือกช่อง'],
+            ['kol1', 'กรุณาเลือก KOL'],
+            ['live_hours1', 'กรุณาระบุจำนวนชั่วโมงไลฟ์'],
+            ['time1', 'กรุณาเลือกเวลา'],
+            ['max_viewers1', 'กรุณากรอกจำนวนคนสูงสุด'],
+            ['min_viewers1', 'กรุณากรอกจำนวนคนต่ำสุด'],
+            ['hot_basket1', 'กรุณากรอกตะกร้า hot!'],
+            ['orders1', 'กรุณากรอกจำนวนออเดอร์'],
+            ['gmv1', 'กรุณากรอก GMV'],
+            ['ads1', 'กรุณากรอก Ads'],
+            ['commission_percent1', 'ไม่พบเปอร์เซ็นต์ค่าคอม กรุณาเลือกสินค้าใหม่']
+        ];
+
+        requiredFields.forEach(([id, message]) => {
+            if (value(id) === '') errors.push({ id, message });
+        });
+
+        // ถ้ามีช่องว่าง ให้หยุดก่อน เพื่อไม่สร้าง error ซ้ำซ้อน
+        if (errors.length > 0) {
+            showHourlyValidationErrors(errors);
+            return false;
+        }
+
+        // ------------------------------
+        // 2) ตรวจตัวเลขพื้นฐาน
+        // ------------------------------
+        const liveHours = numberValue('live_hours1');
+        const maxViewers = numberValue('max_viewers1');
+        const minViewers = numberValue('min_viewers1');
+        const orders = numberValue('orders1');
+        const gmv = numberValue('gmv1');
+        const ads = numberValue('ads1');
+        const commissionPercent = numberValue('commission_percent1');
+
+        if (!Number.isInteger(liveHours) || liveHours < 1 || liveHours > 24) {
+            errors.push({ id: 'live_hours1', message: 'จำนวนชั่วโมงไลฟ์ต้องเป็นเลขเต็ม 1–24 ชั่วโมง' });
+        }
+
+        if (!Number.isInteger(maxViewers) || maxViewers < 0) {
+            errors.push({ id: 'max_viewers1', message: 'คนสูงสุดต้องเป็นเลขเต็ม 0 ขึ้นไป' });
+        }
+
+        if (!Number.isInteger(minViewers) || minViewers < 0) {
+            errors.push({ id: 'min_viewers1', message: 'คนต่ำสุดต้องเป็นเลขเต็ม 0 ขึ้นไป' });
+        }
+
+        if (Number.isFinite(maxViewers) && Number.isFinite(minViewers) && maxViewers < minViewers) {
+            errors.push({ id: 'max_viewers1', message: 'คนสูงสุดต้องไม่น้อยกว่าคนต่ำสุด' });
+            document.getElementById('min_viewers1').classList.add('input-error');
+        }
+
+        if (!Number.isInteger(orders) || orders < 0) {
+            errors.push({ id: 'orders1', message: 'จำนวนออเดอร์ต้องเป็นเลขเต็ม 0 ขึ้นไป' });
+        }
+
+        if (!Number.isFinite(gmv) || gmv < 0) {
+            errors.push({ id: 'gmv1', message: 'GMV ต้องเป็น 0 หรือมากกว่า' });
+        }
+
+        if (!Number.isFinite(ads) || ads < 0) {
+            errors.push({ id: 'ads1', message: 'Ads ต้องเป็น 0 หรือมากกว่า' });
+        }
+
+        if (!Number.isFinite(commissionPercent) || commissionPercent <= 0) {
+            errors.push({ id: 'commission_percent1', message: 'เปอร์เซ็นต์ค่าคอมไม่ถูกต้อง กรุณาเลือกสินค้าใหม่' });
+        }
+
+        if (errors.length > 0) {
+            showHourlyValidationErrors(errors);
+            return false;
+        }
+
+        return true;
+    }
+
+    // ==========================================
+    // เตือน "ค่าที่อาจผิด" แต่ยังอนุญาตให้ผู้ใช้ยืนยันแล้วส่งได้
+    // ไม่ใช้เป็น Error เพราะข้อมูลจริงบางวันอาจเป็นแบบนี้ได้
+    // ==========================================
+    function getHourlyWarnings() {
+        const warnings = [];
+
+        const orders = Number(document.getElementById('orders1').value);
+        const gmv = Number(document.getElementById('gmv1').value);
+        const ads = Number(document.getElementById('ads1').value);
+        const maxViewers = Number(document.getElementById('max_viewers1').value);
+
+        if (orders > 0 && gmv === 0) {
+            warnings.push(`ขายได้ ${orders} ออเดอร์ แต่ GMV เป็น 0 บาท`);
+        }
+
+        if (gmv > 0 && orders === 0) {
+            warnings.push(`GMV ${gmv.toLocaleString('th-TH')} บาท แต่จำนวนออเดอร์เป็น 0`);
+        }
+
+        if (ads > gmv && ads > 0) {
+            warnings.push(`Ads ${ads.toLocaleString('th-TH')} บาท สูงกว่า GMV ${gmv.toLocaleString('th-TH')} บาท`);
+        }
+
+        if (maxViewers === 0) {
+            warnings.push('คนสูงสุดเป็น 0 คน');
+        }
+
+        return warnings;
+    }
+
+    function confirmHourlyWarnings() {
+        const warnings = getHourlyWarnings();
+        if (warnings.length === 0) return true;
+
+        const message =
+            '⚠️ พบข้อมูลที่อาจกรอกผิด\\n\\n' +
+            warnings.map((item, index) => `${index + 1}. ${item}`).join('\\n') +
+            '\\n\\nถ้าตรวจแล้วว่าถูกต้อง กด “ตกลง” เพื่อส่งต่อ';
+
+        return window.confirm(message);
+    }
+
+    function setHourlySyncStatus(type, message) {
+        const status = document.getElementById('hourlySyncStatus');
+        status.className = `sync-status show ${type}`;
+        status.textContent = message;
+    }
+
+    function clearHourlySyncStatus() {
+        const status = document.getElementById('hourlySyncStatus');
+        status.className = 'sync-status';
+        status.textContent = '';
+    }
+
+    // ==========================================
     // คัดลอกสรุปรายชั่วโมง + ส่งข้อมูลไป Google Sheet
     // ==========================================
     async function copyHourlyAndSync() {
+        // กันผู้ใช้กดปุ่มซ้ำระหว่างที่ request เดิมยังทำงานอยู่
+        if (isHourlySyncing) return;
+
+        // ตรวจข้อมูลให้ผ่านก่อนคัดลอก/ส่ง
+        if (!validateHourlyForm()) {
+            setHourlySyncStatus('error', 'ยังไม่ได้ส่งข้อมูล กรุณาแก้ช่องที่มีกรอบสีแดงก่อน');
+            return;
+        }
+
+        // ค่าที่ "เป็นไปได้แต่ดูผิดปกติ" จะถามยืนยันอีกครั้ง
+        if (!confirmHourlyWarnings()) {
+            setHourlySyncStatus('warning', 'ยกเลิกการส่งแล้ว กรุณาตรวจตัวเลขอีกครั้ง');
+            return;
+        }
+
+        // สำคัญ: สร้างข้อความใหม่จากค่าปัจจุบันก่อนคัดลอก
+        // ป้องกันกรณีผู้ใช้สร้างสรุปไว้แล้ว กลับไปแก้ GMV/Ads แต่ไม่ได้กดสร้างสรุปใหม่
+        generateHourlyReport(false, true);
+
         const copyText = document.getElementById('outputResult1');
         const copyBtn = document.getElementById('copyBtn1');
+
+        isHourlySyncing = true;
+        copyBtn.disabled = true;
+        clearHourlySyncStatus();
 
         // 1) คัดลอกข้อความก่อนเสมอ
         try {
@@ -446,13 +721,14 @@
         ) {
             copyBtn.innerHTML = '⚠️ คัดลอกแล้ว แต่ยังไม่ได้ตั้งค่า Sheet URL';
             copyBtn.style.backgroundColor = '#D97706';
+            setHourlySyncStatus('warning', 'คัดลอกข้อความแล้ว แต่ยังไม่ได้ตั้งค่า Google Sheet Web App URL');
             setTimeout(() => resetHourlyCopyButton(), 3500);
             return;
         }
 
-        copyBtn.disabled = true;
         copyBtn.innerHTML = '⏳ คัดลอกแล้ว • กำลังส่งข้อมูล...';
         copyBtn.style.backgroundColor = 'var(--success-hover)';
+        setHourlySyncStatus('warning', 'กำลังส่งข้อมูลไป Google Sheet กรุณาอย่ากดปุ่มซ้ำ');
 
         try {
             // ใช้ URLSearchParams ให้เป็น simple POST request
@@ -466,15 +742,24 @@
                 body: body
             });
 
-            copyBtn.innerHTML = '✅ คัดลอกแล้ว • ส่งคำขอไป Sheet แล้ว';
+            copyBtn.innerHTML = '✅ คัดลอกแล้ว • ส่งข้อมูลแล้ว';
             copyBtn.style.backgroundColor = 'var(--success-hover)';
+            setHourlySyncStatus(
+                'success',
+                `ส่งข้อมูลรอบ ${payload.time} ของ ${payload.kol} ไปยัง Google Sheet แล้ว — ถ้ามีรอบเดิม ระบบฝั่ง Sheet จะอัปเดตแถวเดิม`
+            );
 
         } catch (error) {
             console.error('Google Sheet sync error:', error);
             copyBtn.innerHTML = '⚠️ คัดลอกแล้ว • ส่ง Sheet ไม่สำเร็จ';
             copyBtn.style.backgroundColor = '#D97706';
+            setHourlySyncStatus(
+                'error',
+                'คัดลอกข้อความแล้ว แต่ส่ง Google Sheet ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง'
+            );
         } finally {
-            setTimeout(() => resetHourlyCopyButton(), 3500);
+            // ล็อกปุ่มต่ออีกเล็กน้อย ป้องกันการกดซ้ำแบบเผลอ ๆ
+            setTimeout(() => resetHourlyCopyButton(), 3000);
         }
     }
 
@@ -483,6 +768,8 @@
         copyBtn.disabled = false;
         copyBtn.innerHTML = '📋 คัดลอกข้อความ';
         copyBtn.style.backgroundColor = 'var(--success-color)';
+        isHourlySyncing = false;
+        // intentionally ไม่ล้าง status เพื่อให้ผู้ใช้ยังเห็นว่ารอบล่าสุดส่งแล้ว
     }
 
     // ==========================================
@@ -606,12 +893,22 @@
         if (selectedValue) timeSelect.value = selectedValue;
     }
 
-    function generateHourlyReport() {
-        const d = new Date(document.getElementById('date1').value);
+    function generateHourlyReport(shouldScroll = true, skipValidation = false) {
+        // ปุ่ม "สร้างสรุป" ก็ต้องตรวจข้อมูลก่อน
+        if (!skipValidation && !validateHourlyForm()) {
+            return false;
+        }
+
+        // แปลง yyyy-mm-dd เป็น Date แบบ local ป้องกันวันที่เหลื่อมจาก timezone
+        const dateParts = document.getElementById('date1').value.split('-').map(Number);
+        const d = dateParts.length === 3
+            ? new Date(dateParts[0], dateParts[1] - 1, dateParts[2])
+            : new Date(NaN);
+
         const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
         const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
         const dateThai = d.getTime() ? `${days[d.getDay()]} ที่ ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}` : '';
-        
+
         const template = `🎬 ${dateThai}
 📌 สินค้า - ${document.getElementById('product1').value}
 👩🏻 ช่อง - ${document.getElementById('channel1').value}
@@ -631,7 +928,12 @@ Ads            : ${document.getElementById('ads1').value} ฿
 
         document.getElementById('outputResult1').value = template;
         document.getElementById('resultSection1').style.display = 'block';
-        document.getElementById('resultSection1').scrollIntoView({ behavior: 'smooth' });
+
+        if (shouldScroll) {
+            document.getElementById('resultSection1').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        return true;
     }
 
     // ==========================================
