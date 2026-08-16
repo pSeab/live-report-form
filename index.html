@@ -605,6 +605,7 @@
                 <div class="form-group">
                     <label>🥰 KOL</label>
                     <select id="kol1" required>
+                        <option value="" disabled selected>เลือกชื่อ KOL</option>
                         <option value="ของขวัญ">ของขวัญ</option><option value="ออย">ออย</option>
                         <option value="อันอัน">อันอัน</option><option value="ฟางข้าว">ฟางข้าว</option>
                         <option value="ปลา">ปลา</option><option value="ไอซ์">ไอซ์</option><option value="รัน">รัน</option>
@@ -612,8 +613,13 @@
                 </div>
             </div>
             <div class="two-col">
-                <div class="form-group"><label>ไลฟ์สด (จำนวนชั่วโมง)</label><input type="number" id="live_hours1" min="1" max="24" step="1" value="1" required oninput="generateTimeOptions()"></div>
-                <div class="form-group"><label>เวลา</label><select id="time1" required></select></div>
+                <div class="form-group"><label>ไลฟ์สด (จำนวนชั่วโมง)</label><input type="number" id="live_hours1" min="0.5" step="0.5" value="3" required></div>
+                <div class="form-group">
+                    <label>เวลา</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="time" id="time_start1" required> <span>ถึง</span> <input type="time" id="time_end1" required>
+                    </div>
+                </div>
             </div>
             <div class="two-col">
                 <div class="form-group"><label>คนสูงสุด</label><input type="number" id="max_viewers1" min="0" step="1" required></div>
@@ -862,7 +868,6 @@
     // ==========================================
     window.onload = function() {
         showRandomTip(); 
-        generateTimeOptions();
         document.getElementById('date1').valueAsDate = new Date();
         document.getElementById('date2').valueAsDate = new Date();
         setupHourlyValidationListeners();
@@ -969,7 +974,8 @@
             ['channel1', 'กรุณาเลือกช่อง'],
             ['kol1', 'กรุณาเลือก KOL'],
             ['live_hours1', 'กรุณาระบุจำนวนชั่วโมงไลฟ์'],
-            ['time1', 'กรุณาเลือกเวลา'],
+            ['time_start1', 'กรุณาเลือกเวลาเริ่มต้น'],
+            ['time_end1', 'กรุณาเลือกเวลาสิ้นสุด'],
             ['max_viewers1', 'กรุณากรอกจำนวนคนสูงสุด'],
             ['min_viewers1', 'กรุณากรอกจำนวนคนต่ำสุด'],
             ['hot_basket1', 'กรุณากรอกตะกร้า hot!'],
@@ -1000,8 +1006,8 @@
         const ads = numberValue('ads1');
         const commissionPercent = numberValue('commission_percent1');
 
-        if (!Number.isInteger(liveHours) || liveHours < 1 || liveHours > 24) {
-            errors.push({ id: 'live_hours1', message: 'จำนวนชั่วโมงไลฟ์ต้องเป็นเลขเต็ม 1–24 ชั่วโมง' });
+        if (!Number.isFinite(liveHours) || liveHours <= 0 || liveHours > 24) {
+            errors.push({ id: 'live_hours1', message: 'จำนวนชั่วโมงไลฟ์ต้องมากกว่า 0 และไม่เกิน 24 ชั่วโมง' });
         }
 
         if (!Number.isInteger(maxViewers) || maxViewers < 0) {
@@ -1251,7 +1257,7 @@
         // 2) รวบรวมข้อมูลจากฟอร์ม
         const payload = {
             date: document.getElementById('date1').value,
-            time: document.getElementById('time1').value,
+            time: document.getElementById('time_start1').value + '-' + document.getElementById('time_end1').value,
             liveHours: document.getElementById('live_hours1').value,
             channel: document.getElementById('channel1').value,
             product: document.getElementById('product1').value,
@@ -1458,22 +1464,6 @@
         }
     }
 
-    function generateTimeOptions() {
-        const hours = parseInt(document.getElementById('live_hours1').value) || 1;
-        const timeSelect = document.getElementById('time1');
-        const selectedValue = timeSelect.value;
-        timeSelect.innerHTML = ''; 
-        for (let i = 0; i < 24; i++) {
-            let start = i.toString().padStart(2, '0') + ':00';
-            let endHour = i + hours;
-            let end = (endHour >= 24 ? endHour - 24 : endHour).toString().padStart(2, '0') + ':00';
-            let option = document.createElement('option');
-            option.value = `${start} - ${end}`; option.text = `${start} - ${end}`;
-            timeSelect.appendChild(option);
-        }
-        if (selectedValue) timeSelect.value = selectedValue;
-    }
-
     function generateHourlyReport(shouldScroll = true, skipValidation = false) {
         // ปุ่ม "สร้างสรุป" ก็ต้องตรวจข้อมูลก่อน
         if (!skipValidation && !validateHourlyForm()) {
@@ -1496,7 +1486,7 @@
 🥰 KOL - ${document.getElementById('kol1').value}
 
 ไลฟ์สด        : ${document.getElementById('live_hours1').value} ชั่วโมง
-เวลา            : ${document.getElementById('time1').value}
+เวลา            : ${document.getElementById('time_start1').value}-${document.getElementById('time_end1').value}
 คนสูงสุด      : ${document.getElementById('max_viewers1').value}
 ต่ำสุด          : ${document.getElementById('min_viewers1').value}
 ตะกร้าhot!  : ${document.getElementById('hot_basket1').value}
@@ -1640,17 +1630,26 @@ Ads            : ${document.getElementById('ads1').value} ฿
         const file = input.files[0];
         if (!file) return;
 
+        // 1. ดึงค่าจากฟอร์มให้ครบ
         const dateVal = document.getElementById('date1').value;
         const channelVal = document.getElementById('channel1').value;
         const productVal = document.getElementById('product1').value;
+        const kolVal = document.getElementById('kol1').value;
+        const timeStartVal = document.getElementById('time_start1').value;
+        const timeEndVal = document.getElementById('time_end1').value;
+        const timeVal = timeStartVal + '-' + timeEndVal;
     
-        if (!dateVal || !channelVal || !productVal) {
-            openWarningModal('กรุณาเลือก <b>"วันที่"</b>, <b>"ช่อง"</b> และ <b>"สินค้า"</b> ให้เรียบร้อยก่อนอัปโหลดรูปภาพ<br><br><span style="font-size:13px;color:#6B7280;">เพื่อให้ระบบคำนวณหักลบยอดกะได้ถูกต้องครับ</span>');
+        // 2. บังคับกรอกให้ครบก่อนอัปโหลดรูป
+        if (!dateVal || !channelVal || !productVal || !kolVal || !timeStartVal || !timeEndVal) {
+            openWarningModal(
+                'กรุณาเลือก <b>"วันที่", "สินค้า", "ช่อง", "KOL"</b> และ <b>"เวลา"</b> ให้ครบถ้วนก่อนอัปโหลดรูปภาพ<br><br>' +
+                '<span style="font-size:13px;color:#6B7280;">เพื่อให้ระบบตรวจสอบคิวฟันหลอและคำนวณยอดหักลบได้ถูกต้องครับ</span>'
+            );
             input.value = '';
             return;
         }
 
-        // 🌟 1. เปิด Full-screen Loading ทันที
+        // 🌟 เปิด Full-screen Loading ทันที
         showLoading('🤖 กำลังวิเคราะห์รูปภาพ', 'AI กำลังอ่านตัวเลขจาก Dashboard...');
 
         try {
@@ -1664,7 +1663,7 @@ Ads            : ${document.getElementById('ads1').value} ฿
                     action: 'analyze_image',
                     image: base64Data,
                     mimeType: 'image/jpeg',
-                 product: productVal
+                    product: productVal
                 })
             });
 
@@ -1674,24 +1673,40 @@ Ads            : ${document.getElementById('ads1').value} ฿
 
             const currentTotal = aiResult.data;
 
-            // 🌟 2. อัปเดตข้อความบน Loading โดยไม่ปิดหน้าจอ
+            // สเต็ปที่ 2: ดึงยอดสะสมเดิมและเวลาล่าสุดจาก Google Sheet
             updateLoading('📊 กำลังหักลบยอดกะ', 'กำลังดึงยอดสะสมเดิมจาก Google Sheet...');
         
             const prevResponse = await fetch(GOOGLE_SHEET_WEB_APP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({
-                action: 'get_previous_data',
-                date: dateVal,
-                channel: channelVal,
-                product: productVal
+                    action: 'get_previous_data',
+                    date: dateVal,
+                    channel: channelVal,
+                    product: productVal
                 })
             });
 
             const prevResult = await prevResponse.json();
-            const prevTotal = prevResult.success ? prevResult.data : { gmv: 0, orders: 0, ads: 0 };
+            const prevTotal = prevResult.success ? prevResult.data : { gmv: 0, orders: 0, ads: 0, latestEndTime: "" };
 
-            // สเต็ปที่ 3: คำนวณยอดสุทธิ
+            // 🌟 [ระบบป้องกัน] เช็คเวลาว่าฟันหลอหรือไม่ ก่อนที่จะคำนวณ
+            const selectedStartTime = timeVal.split('-')[0].trim(); // ดึงเวลาเริ่มจากฟอร์ม เช่น "16:00"
+
+            if (prevTotal.latestEndTime && selectedStartTime > prevTotal.latestEndTime) {
+                hideLoading();
+                input.value = '';
+                openWarningModal(
+                    `⚠️ <b>พบข้อมูลสูญหาย (คิวฟันหลอ)!</b><br><br>` +
+                    `เวลาล่าสุดที่มีในระบบคือ <b>${prevTotal.latestEndTime} น.</b><br>` +
+                    `แต่คุณกำลังเลือกรอบ <b>${selectedStartTime} น.</b><br><br>` +
+                    `<span style="color:#DC2626; font-size:14px;">หมายความว่าคิวก่อนหน้ายังไม่ได้กรอกข้อมูล! หากคำนวณตอนนี้ ยอดของคนก่อนหน้าจะมารวมกับของคุณทั้งหมด</span><br><br>` +
+                    `<b>วิธีแก้:</b> ตามคิวก่อนหน้ามากรอกข้อมูลให้ครบก่อน หรือ กรอกตัวเลขยอดขายรอบตัวเองด้วยมือ (ห้ามใช้ AI กรอกอัตโนมัติในรอบนี้)`
+                );
+                return; // หยุดการทำงานทันที ไม่นำตัวเลขไปใส่ฟอร์ม
+            }
+
+            // สเต็ปที่ 3: คำนวณยอดสุทธิ (ทำต่อเมื่อเวลาไม่ฟันหลอ)
             const currentGmv = Number(currentTotal.gmv) || 0;
             const prevGmv = Number(prevTotal.gmv) || 0;
             const netGmv = currentGmv - prevGmv;
@@ -1729,7 +1744,20 @@ Ads            : ${document.getElementById('ads1').value} ฿
 
         } catch (error) {
             console.error(error);
-            openWarningModal(`เกิดข้อผิดพลาด: ${error.message}`);
+            let errorMsg = error.message;
+            
+            // ตรวจจับว่า Error เกิดจากคิว AI เต็ม (High Demand) หรือไม่
+            if (errorMsg.toLowerCase().includes('high demand') || errorMsg.toLowerCase().includes('quota') || errorMsg.includes('429')) {
+                openWarningModal(
+                    '⏳ <b>คิว AI เต็มชั่วคราว!</b><br><br>' +
+                    'ตอนนี้มีคนใช้งาน AI ทั่วโลกจำนวนมาก<br>' +
+                    '<span style="color:#6B7280; font-size:14px;">(กรุณารอประมาณ 10-30 วินาที แล้วลองอัปโหลดรูปใหม่อีกครั้ง)</span><br><br>' +
+                    '💡 <i>ถ้ารอไม่ไหว สามารถ <b>"กรอกตัวเลขด้วยตัวเอง"</b> ลงในฟอร์มไปก่อนได้เลยครับ</i>'
+                );
+            } else {
+                openWarningModal(`⚠️ <b>เกิดข้อผิดพลาด:</b><br><span style="font-size:14px;">${errorMsg}</span>`);
+            }
+            
         } finally {
             // 🌟 3. ปิด Loading และคืนค่าปุ่มอัปโหลด
             hideLoading();
