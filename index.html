@@ -200,7 +200,87 @@
             font-weight: 600;
             text-align: center;
         }
+        /* ==========================================
+        Switch เริ่ม Live ใหม่
+        ========================================== */
 
+        .new-live-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+            border-radius: 12px;
+            border: 1px solid #FED7AA;
+            background: #FFF7ED;
+        }
+
+        .new-live-copy {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .new-live-title {
+            font-size: 14.5px;
+            font-weight: 600;
+            color: #9A3412;
+        }
+
+        .new-live-desc {
+            margin-top: 4px;
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .new-live-switch {
+            position: relative;
+            display: inline-block !important;
+            width: 52px;
+            height: 30px;
+            flex: 0 0 52px;
+            margin: 0 !important;
+        }
+
+        .new-live-switch input {
+            position: absolute;
+            opacity: 0;
+            width: 0 !important;
+            height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .new-live-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: #D1D5DB;
+            border-radius: 999px;
+            transition: 0.25s;
+        }
+
+        .new-live-slider::before {
+            content: "";
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            left: 4px;
+            top: 4px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            transition: 0.25s;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+        }
+
+        .new-live-switch input:checked + .new-live-slider {
+            background-color: #DC2626;
+        }
+
+        .new-live-switch input:checked + .new-live-slider::before {
+            transform: translateX(22px);
+        }
         /* ส่วน YouTube Video */
         .youtube-section {
             margin-top: 30px;
@@ -635,6 +715,33 @@
                         <option value="ปลา">ปลา</option><option value="ไอซ์">ไอซ์</option><option value="รัน">รัน</option>
                     </select>
                 </div>
+            </div>
+            <!-- ==========================================
+            ระบบระบุรอบแรกของ Live ใหม่
+            ========================================== -->
+            <div class="new-live-box">
+
+                <div class="new-live-copy">
+                    <div class="new-live-title">
+                        🔴 เริ่ม Live ใหม่
+                    </div>
+
+                    <div class="new-live-desc">
+                        เปิดเฉพาะรอบแรกหลังขึ้น Live ใหม่
+                        ระบบจะเริ่มคำนวณยอดจาก 0
+                        และไม่หักยอดจาก Live ก่อนหน้า
+                    </div>
+                </div>
+
+                <label class="new-live-switch">
+                    <input
+                        type="checkbox"
+                        id="is_new_live1"
+                        aria-label="เริ่ม Live ใหม่"
+                    >
+                    <span class="new-live-slider"></span>
+                </label>
+
             </div>
             <div class="two-col">
 
@@ -1584,6 +1691,8 @@
             orders: document.getElementById('orders1').value,
             commissionPercent: document.getElementById('commission_percent1').value,
             ads: document.getElementById('ads1').value,
+            isNewLive:
+                document.getElementById('is_new_live1')?.checked === true,
             requestId: requestId
         };
 
@@ -1635,7 +1744,12 @@
                 'success',
                 `Google Sheet ยืนยันแล้ว: ${actionText} • รอบ ${payload.time} • ${payload.kol}`
             );
+            const newLiveSwitch =
+                document.getElementById('is_new_live1');
 
+            if (newLiveSwitch) {
+                newLiveSwitch.checked = false;
+            }
         } catch (error) {
             console.error('Google Sheet sync error:', error);
             copyBtn.innerHTML = '⚠️ คัดลอกแล้ว • Sheet ยังไม่ยืนยัน';
@@ -1956,6 +2070,10 @@ Ads            : ${document.getElementById('ads1').value} ฿
         const timeStartVal = document.getElementById('time_start1').value;
         const timeEndVal = document.getElementById('time_end1').value;
         const timeVal = timeStartVal + '-' + timeEndVal;
+
+        // true = รอบแรกของ Live ใหม่
+        const isNewLive =
+            document.getElementById('is_new_live1')?.checked === true;
     
         // 2. บังคับกรอกให้ครบก่อนอัปโหลดรูป
         if (!dateVal || !channelVal || !productVal || !kolVal || !timeStartVal || !timeEndVal) {
@@ -1974,54 +2092,143 @@ Ads            : ${document.getElementById('ads1').value} ฿
             const base64Data = await compressImage(file);
     
             // สเต็ปที่ 1: ส่งรูปให้ AI อ่าน
-            const aiResponse = await fetch(GOOGLE_SHEET_WEB_APP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({
-                    action: 'analyze_image',
-                    image: base64Data,
-                    mimeType: 'image/jpeg',
-                    product: productVal
-                })
-            });
+            const aiResponse = await fetch(
+                GOOGLE_SHEET_WEB_APP_URL,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8'
+                    },
+                    body: JSON.stringify({
+                        action: 'analyze_image',
+                        image: base64Data,
+                        mimeType: 'image/jpeg',
+                        product: productVal
+                    })
+                }
+            );
 
-            if (!aiResponse.ok) throw new Error('การเชื่อมต่อกับเซิร์ฟเวอร์ล้มเหลว (AI)');
-            const aiResult = await aiResponse.json();
-            if (!aiResult.success) throw new Error(aiResult.message);
+            if (!aiResponse.ok) {
+                throw new Error(
+                    'การเชื่อมต่อกับเซิร์ฟเวอร์ล้มเหลว (AI)'
+                );
+            }
 
-            const currentTotal = aiResult.data;
+            const aiResult =
+                await aiResponse.json();
+
+            if (!aiResult.success) {
+                throw new Error(aiResult.message);
+            }
+
+            const currentTotal =
+                aiResult.data;
 
             // สเต็ปที่ 2: ดึงยอดสะสมเดิมและเวลาล่าสุดจาก Google Sheet
             updateLoading('📊 กำลังหักลบยอดกะ', 'กำลังดึงยอดสะสมเดิมจาก Google Sheet...');
         
-            const prevResponse = await fetch(GOOGLE_SHEET_WEB_APP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({
-                    action: 'get_previous_data',
-                    date: dateVal,
-                    channel: channelVal,
-                    product: productVal
-                })
-            });
+            const prevResponse = await fetch(
+                GOOGLE_SHEET_WEB_APP_URL,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8'
+                    },
+                    body: JSON.stringify({
+                        action: 'get_previous_data',
+                        date: dateVal,
+                        channel: channelVal,
+                        product: productVal,
 
-            const prevResult = await prevResponse.json();
-            const prevTotal = prevResult.success ? prevResult.data : { gmv: 0, orders: 0, ads: 0, latestEndTime: "" };
+                        // ⭐ ต้องมี
+                        time: timeVal,
+
+                        // ⭐ ต้องมี
+                        isNewLive: isNewLive
+                    })
+                }
+            );
+
+            // ตรวจว่า Server ตอบกลับสำเร็จหรือไม่
+            if (!prevResponse.ok) {
+                throw new Error(
+                    'ไม่สามารถดึงยอดก่อนหน้าจาก Google Sheet ได้'
+                );
+            }
+
+            const prevResult =
+                await prevResponse.json();
+
+            // ถ้า Backend แจ้ง Error
+            // ห้ามสมมติ Previous = 0 เพราะจะทำให้ยอดผิด
+            if (
+                !prevResult ||
+                prevResult.success !== true ||
+                !prevResult.data
+            ) {
+                throw new Error(
+                    prevResult?.message ||
+                    'ระบบไม่สามารถอ่านยอดก่อนหน้าจาก Google Sheet ได้'
+                );
+            }
+
+            const prevTotal =
+                prevResult.data;
 
             // 🌟 [ระบบป้องกัน] เช็คเวลาว่าฟันหลอหรือไม่ ก่อนที่จะคำนวณ
             const selectedStartTime = timeVal.split('-')[0].trim(); // ดึงเวลาเริ่มจากฟอร์ม เช่น "16:00"
 
-            if (prevTotal.latestEndTime && selectedStartTime > prevTotal.latestEndTime) {
-                hideLoading();
-                input.value = '';
-                openWarningModal(
-                    `⚠️ <b>พบข้อมูลสูญหาย (คิวฟันหลอ)!</b><br><br>` +
-                    `เวลาล่าสุดที่มีในระบบคือ <b>${prevTotal.latestEndTime} น.</b><br>` +
-                    `แต่คุณกำลังเลือกรอบ <b>${selectedStartTime} น.</b><br><br>` +
-                    `<span style="color:#DC2626; font-size:14px;">หมายความว่าคิวก่อนหน้ายังไม่ได้กรอกข้อมูล! หากคำนวณตอนนี้ ยอดของคนก่อนหน้าจะมารวมกับของคุณทั้งหมด</span><br><br>` +
-                    `<b>วิธีแก้:</b> ตามคิวก่อนหน้ามากรอกข้อมูลให้ครบก่อน หรือ กรอกตัวเลขยอดขายรอบตัวเองด้วยมือ (ห้ามใช้ AI กรอกอัตโนมัติในรอบนี้)`
-                );
-                return; // หยุดการทำงานทันที ไม่นำตัวเลขไปใส่ฟอร์ม
+            if (
+                !isNewLive &&
+                prevTotal.latestEndTime
+            ) {
+
+                // -----------------------------
+                // กรณีมีช่วงเวลาหาย
+                // -----------------------------
+                if (
+                    selectedStartTime >
+                    prevTotal.latestEndTime
+                ) {
+
+                    hideLoading();
+                    input.value = '';
+
+                    openWarningModal(
+                        `⚠️ <b>พบข้อมูลสูญหาย (คิวฟันหลอ)!</b><br><br>` +
+                        `เวลาล่าสุดที่มีในระบบคือ <b>${prevTotal.latestEndTime} น.</b><br>` +
+                        `แต่คุณกำลังเลือกรอบ <b>${selectedStartTime} น.</b><br><br>` +
+                        `<span style="color:#DC2626;font-size:14px;">` +
+                        `กรุณาตรวจสอบว่าคิวก่อนหน้าได้กรอกข้อมูลครบแล้วหรือยัง` +
+                        `</span>`
+                    );
+
+                    return;
+                }
+
+
+                // -----------------------------
+                // กรณีเวลาใหม่ทับกับรอบก่อนหน้า
+                // -----------------------------
+                if (
+                    selectedStartTime <
+                    prevTotal.latestEndTime
+                ) {
+
+                    hideLoading();
+                    input.value = '';
+
+                    openWarningModal(
+                        `⚠️ <b>ช่วงเวลา Live ทับกับข้อมูลก่อนหน้า!</b><br><br>` +
+                        `รอบก่อนหน้าสิ้นสุดเวลา <b>${prevTotal.latestEndTime} น.</b><br>` +
+                        `แต่รอบนี้เริ่มเวลา <b>${selectedStartTime} น.</b><br><br>` +
+                        `<span style="color:#DC2626;font-size:14px;">` +
+                        `กรุณาตรวจสอบเวลาเริ่ม Live ให้ถูกต้อง` +
+                        `</span>`
+                    );
+
+                    return;
+                }
             }
 
             // สเต็ปที่ 3: คำนวณยอดสุทธิ (ทำต่อเมื่อเวลาไม่ฟันหลอ)
@@ -2052,13 +2259,34 @@ Ads            : ${document.getElementById('ads1').value} ฿
 
             const statusBox = document.getElementById('aiLoadingStatus');
             statusBox.style.display = 'block';
-            if (netGmv < 0) {
-                statusBox.innerHTML = `⚠️ AI อ่านยอดได้ ${currentGmv.toLocaleString()}฿ แต่น้อยกว่ายอดเดิมใน Sheet (${prevGmv.toLocaleString()}฿) ระบบจึงปัดเป็น 0`;
-                statusBox.style.color = '#D97706';
-            } else {
-                statusBox.innerHTML = `✅ คำนวณสำเร็จ! (ภาพ ${currentGmv.toLocaleString()}฿ - เดิม ${prevGmv.toLocaleString()}฿ = <b>สุทธิ ${finalGmv.toLocaleString()}฿</b>)`;
-                statusBox.style.color = '#059669';
-            }
+            if (isNewLive) {
+
+            statusBox.innerHTML =
+                `✅ เริ่ม Live ใหม่ — ระบบไม่นำยอด Live ก่อนหน้ามาหัก ` +
+                `(ยอดจากภาพ ${currentGmv.toLocaleString()}฿ → ` +
+                `<b>รอบนี้ ${finalGmv.toLocaleString()}฿</b>)`;
+
+            statusBox.style.color = '#059669';
+
+        } else if (netGmv < 0) {
+
+            statusBox.innerHTML =
+                `⚠️ AI อ่านยอดได้ ${currentGmv.toLocaleString()}฿ ` +
+                `แต่น้อยกว่ายอดเดิมใน Sheet (${prevGmv.toLocaleString()}฿) ` +
+                `ระบบจึงปัดเป็น 0`;
+
+            statusBox.style.color = '#D97706';
+
+        } else {
+
+            statusBox.innerHTML =
+                `✅ คำนวณสำเร็จ! ` +
+                `(ภาพ ${currentGmv.toLocaleString()}฿ - ` +
+                `เดิม ${prevGmv.toLocaleString()}฿ = ` +
+                `<b>สุทธิ ${finalGmv.toLocaleString()}฿</b>)`;
+
+            statusBox.style.color = '#059669';
+        }
 
         } catch (error) {
             console.error(error);
