@@ -645,18 +645,22 @@
     <!-- TAB 1: สรุปรายชั่วโมง -->
     <!-- ===================================== -->
     <div id="tab-hourly" class="tab-content active">
-    <!-- กล่องให้ AI ช่วยกรอกข้อมูลจากภาพ -->
-    <div class="ai-upload-box" style="background: #EEF2FF; border: 2px dashed #6366F1; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;">(เวอร์ชั้นทดลอง)
-        <h4 style="margin: 0 0 10px 0; color: #4338CA;">🤖 ให้ AI ช่วยกรอกข้อมูลจากภาพ</h4>
-        <p style="font-size: 13px; color: #6B7280; margin-bottom: 15px;">แนบรูปหน้าแดชบอร์ด Live (เช่น TikTok) AI จะช่วยดึงยอด GMV, Ads, ออเดอร์ ให้อัตโนมัติ</p>
+    <!-- กล่องให้ AI ช่วยกรอกข้อมูลจากภาพ (ทางหลัก) -->
+    <div class="ai-upload-box" style="background: linear-gradient(135deg, #EEF2FF, #FDF4FF); border: 2px dashed #6366F1; padding: 24px 20px; border-radius: 16px; margin-bottom: 20px; text-align: center; box-shadow: 0 4px 12px rgba(99,102,241,0.10);">
+        <div style="font-size: 40px; margin-bottom: 6px;">🤖</div>
+        <h4 style="margin: 0 0 8px 0; color: #4338CA; font-size: 18px;">ให้ AI ช่วยกรอกข้อมูลจากภาพ (เร็วสุด)</h4>
+        <p style="font-size: 13.5px; color: #6B7280; margin: 0 0 16px 0; line-height: 1.6;">แค่ถ่ายรูปหน้าแดชบอร์ด Live แล้ว AI จะดึงยอด GMV, Ads, ออเดอร์ ให้อัตโนมัติ<br>ไม่ต้องพิมพ์เลขเองเลย</p>
         
         <input type="file" id="aiImageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
-        <button type="button" class="btn-add" onclick="document.getElementById('aiImageInput').click()" style="background: #fff; border: 1px solid #6366F1; color: #4338CA; margin-bottom: 0;">
-            📸 เลือกรูปภาพแดชบอร์ด
+        <button type="button" class="btn-add" onclick="document.getElementById('aiImageInput').click()" style="background: #fff; border: 2px solid #6366F1; color: #4338CA; margin-bottom: 0; padding: 14px; font-size: 16px; box-shadow: 0 4px 8px rgba(99,102,241,0.15);">
+            📸 ถ่าย/เลือกรูปแดชบอร์ด
         </button>
         
+        <div style="margin-top: 10px; font-size: 12.5px; color: #9CA3AF;">ถ้า AI ไม่ว่าง หรืออยากกรอกเอง <a href="#hourlyForm" style="color:#6366F1; font-weight:600;">กดกรอกด้านล่างได้เลย ↓</a></div>
         <div id="aiLoadingStatus" style="display: none; margin-top: 15px; font-size: 14px; font-weight: 500;"></div>
     </div>
+        <!-- 🌟 [เพิ่ม] กล่องโชว์ยอดสะสมก่อนหน้า (ดึงจาก Google Sheet) -->
+        <div id="cumulativeBox" style="display:none; padding: 12px 14px; border-radius: 10px; font-size: 13.5px; line-height: 1.6; margin-bottom: 18px; border: 1px solid;"></div>
         <form id="hourlyForm" novalidate>
 
             <!--
@@ -897,6 +901,8 @@
         <button type="button" class="footer-credit" onclick="openCreditModal()" aria-haspopup="dialog" aria-controls="creditModal">
             Made with ❤️ by <strong>a2t</strong>
         </button>
+        <!-- 🌟 [เพิ่ม] แสดงเวอร์ชันหน้าเว็บ ใช้เช็คว่า deploy ตรงกับ code.gs หรือไม่ -->
+        <span id="appVersionBadge" style="display:block; margin-top:6px; font-size:11px; opacity:0.75;"></span>
     </footer>
 </div>
 
@@ -1033,6 +1039,12 @@
     // ==========================================
     // นำ Web app URL ที่ลงท้ายด้วย /exec จาก Google Apps Script มาใส่ตรงนี้
     const GOOGLE_SHEET_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby-exO8Awl_FILWlJqYx7hqZUdJJi-m61FLcTovRY_Y5jRtggbY3cCjUFCzPPeFnWsTBg/exec';
+
+    // ==========================================
+    // เวอร์ชันของหน้าเว็บ (ต้องตรงกับ APP_VERSION ใน code.gs.js)
+    // ถ้าตรงกัน = deploy ครบทั้ง 2 ฝั่งแล้ว
+    // ==========================================
+    const APP_VERSION = '2.1';
 
     // ==========================================
     // ระบบเลือกเวลาแบบ 24 ชั่วโมง
@@ -1295,6 +1307,18 @@
         document.getElementById('date2').valueAsDate = new Date();
         initializeHourlyTimeSelector();
         setupHourlyValidationListeners();
+
+        // 🌟 [เพิ่ม] กู้คืนค่าที่ใช้ครั้งล่าสุด + ผูก event บันทึกอัตโนมัติ
+        restoreLastUsedValues();
+        attachLastUsedListeners();
+        showAppVersion();
+
+        // 🌟 [เพิ่ม] โชว์ยอดสะสมก่อนหน้า (อัปเดตเมื่อเปลี่ยน วันที่/สินค้า/ช่อง/สวิตช์)
+        ['date1', 'channel1', 'product1', 'is_new_live1'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', scheduleCumulativeFetch);
+        });
+        fetchCumulativeSummary();
         
 
         // 🌟 เพิ่มคำสั่งจัดการ Welcome Pop-up
@@ -1307,6 +1331,75 @@
             }
         }, 1200); // 1200 มิลลิวินาที (1.2 วินาที) สามารถปรับเพิ่ม-ลดได้
     };
+
+    // ==========================================
+    // 🌟 [เพิ่ม] จำค่าที่ใช้ครั้งล่าสุด (localStorage)
+    // ผู้ใช้กรอกซ้ำทุกวัน จะได้ไม่ต้องเลือกใหม่ทุกครั้ง
+    // ==========================================
+    const LAST_USED_KEYS = ['product1', 'channel1', 'kol1'];
+
+    function restoreLastUsedValues() {
+        LAST_USED_KEYS.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const saved = localStorage.getItem('last_' + id);
+            if (saved) {
+                const options = Array.from(el.options);
+                if (options.some(option => option.value === saved)) {
+                    el.value = saved;
+                }
+            }
+        });
+
+        const newLive = document.getElementById('is_new_live1');
+        if (newLive) {
+            newLive.checked = localStorage.getItem('last_is_new_live1') === '1';
+        }
+
+        // หลังกู้คืนสินค้า ต้องคำนวณค่าคอมให้ตรงกับสินค้าที่กู้คืนด้วย
+        applyProductCommission();
+    }
+
+    function attachLastUsedListeners() {
+        LAST_USED_KEYS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', saveLastUsedValues);
+            }
+        });
+
+        const newLive = document.getElementById('is_new_live1');
+        if (newLive) {
+            newLive.addEventListener('change', saveLastUsedValues);
+        }
+    }
+
+    function saveLastUsedValues() {
+        try {
+            LAST_USED_KEYS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    localStorage.setItem('last_' + id, el.value);
+                }
+            });
+
+            const newLive = document.getElementById('is_new_live1');
+            localStorage.setItem('last_is_new_live1', newLive && newLive.checked ? '1' : '0');
+        } catch (error) {
+            // localStorage อาจถูกปิด (เช่น private mode) — ไม่กระทบการใช้งานหลัก
+        }
+    }
+
+    // ==========================================
+    // 🌟 [เพิ่ม] แสดงเวอร์ชันหน้าเว็บที่ footer
+    // ใช้เช็คว่า deploy ตรงกับ code.gs หรือไม่
+    // ==========================================
+    function showAppVersion() {
+        const badge = document.getElementById('appVersionBadge');
+        if (badge) {
+            badge.textContent = 'หน้าเว็บ v' + APP_VERSION;
+        }
+    }
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -1508,9 +1601,9 @@
         if (warnings.length === 0) return true;
 
         const message =
-            '⚠️ พบข้อมูลที่อาจกรอกผิด\\n\\n' +
-            warnings.map((item, index) => `${index + 1}. ${item}`).join('\\n') +
-            '\\n\\nถ้าตรวจแล้วว่าถูกต้อง กด “ตกลง” เพื่อส่งต่อ';
+            '⚠️ พบข้อมูลที่อาจกรอกผิด\n\n' +
+            warnings.map((item, index) => `${index + 1}. ${item}`).join('\n') +
+            '\n\nถ้าตรวจแล้วว่าถูกต้อง กด “ตกลง” เพื่อส่งต่อ';
 
         return window.confirm(message);
     }
@@ -2058,6 +2151,135 @@ Ads            : ${document.getElementById('ads1').value} ฿
         document.getElementById('resultSection2').style.display = 'block';
         document.getElementById('resultSection2').scrollIntoView({ behavior: 'smooth' });
     }
+    // ==========================================
+    // 🌟 [เพิ่ม] โชว์ยอดสะสมก่อนหน้าจาก Google Sheet
+    // ผู้ใช้จะได้เห็นว่า "ตอนนี้ยอดรวมเท่าไหร่แล้ว" โดยไม่ต้องคิดเลขเอง
+    // ==========================================
+    let cumulativeFetchTimer = null;
+
+    // ป้องกันข้อความจาก Sheet ถูกมองเป็น HTML
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    async function fetchCumulativeSummary() {
+        const dateVal = document.getElementById('date1').value;
+        const channelVal = document.getElementById('channel1').value;
+        const productVal = document.getElementById('product1').value;
+
+        const box = document.getElementById('cumulativeBox');
+
+        if (!dateVal || !channelVal || !productVal) {
+            if (box) box.style.display = 'none';
+            return;
+        }
+
+        // 🌟 [เพิ่ม] โชว์สถานะกำลังโหลดทันที
+        if (box) {
+            box.innerHTML = '<span style="opacity:0.85;">⏳ กำลังโหลดยอดสะสม...</span>';
+            box.style.display = 'block';
+            box.style.background = '#F9FAFB';
+            box.style.borderColor = '#D1D5DB';
+            box.style.color = '#6B7280';
+        }
+
+        const isNewLive =
+            document.getElementById('is_new_live1')?.checked === true;
+
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const nowTime = hh + ':' + mm;
+
+        try {
+            const response = await fetch(GOOGLE_SHEET_WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    action: 'get_previous_data',
+                    date: dateVal,
+                    channel: channelVal,
+                    product: productVal,
+                    time: nowTime + '-' + nowTime,
+                    isNewLive: isNewLive
+                })
+            });
+
+            if (!response.ok) throw new Error('network');
+
+            const result = await response.json();
+            if (!result || result.success !== true || !result.data) {
+                if (box) box.style.display = 'none';
+                return;
+            }
+
+            const data = result.data;
+            const gmv = Number(data.gmv) || 0;
+            const orders = Number(data.orders) || 0;
+            const ads = Number(data.ads) || 0;
+
+            if (!box) return;
+
+            // เปิดสวิตช์ "เริ่ม Live ใหม่"
+            if (isNewLive || data.isNewLive === true) {
+                box.innerHTML = '🔴 <b>เริ่ม Live ใหม่</b> — ยอดเริ่มจาก 0 ไม่หักยอด Live ก่อนหน้า';
+                box.style.display = 'block';
+                box.style.background = '#FFF7ED';
+                box.style.borderColor = '#FED7AA';
+                box.style.color = '#9A3412';
+                return;
+            }
+
+            // ยังไม่มีข้อมูลเลย → ซ่อน
+            if (gmv === 0 && orders === 0 && ads === 0 && !data.latestEndTime) {
+                box.style.display = 'none';
+                return;
+            }
+
+            // 🌟 [เพิ่ม] แสดงชื่อ KOL ที่อยู่ในยอดสะสม
+            const kols = Array.isArray(data.kols) ? data.kols : [];
+            let kolText = '';
+            if (kols.length === 1) {
+                kolText = '<div style="margin-top:6px; font-size:12.5px;">🥰 KOL: <b>' + escapeHtml(kols[0]) + '</b></div>';
+            } else if (kols.length > 1) {
+                kolText = '<div style="margin-top:6px; font-size:12.5px;">🥰 KOL (' + kols.length + '): <b>' + kols.map(escapeHtml).join('</b>, <b>') + '</b></div>';
+            }
+
+            const lastText = data.latestEndTime ? 'รอบล่าสุดจบ <b>' + escapeHtml(data.latestEndTime) + '</b> น.' : '';
+
+            box.innerHTML =
+                '<div style="font-weight:600; margin-bottom:6px;">📊 ยอดสะสมถึงตอนนี้</div>' +
+                '<div style="display:grid; grid-template-columns:auto 1fr; gap:4px 16px; align-items:baseline; font-size:14px;">' +
+                    '<span style="opacity:0.8;">GMV</span><b style="text-align:right;">฿ ' + gmv.toLocaleString('th-TH') + '</b>' +
+                    '<span style="opacity:0.8;">ออเดอร์</span><b style="text-align:right;">' + orders.toLocaleString('th-TH') + '</b>' +
+                    '<span style="opacity:0.8;">Ads</span><b style="text-align:right;">฿ ' + ads.toLocaleString('th-TH') + '</b>' +
+                '</div>' +
+                kolText +
+                '<div style="margin-top:6px; font-size:12px; opacity:0.75;">' +
+                    (lastText ? '⏱ ' + lastText + ' • ' : '') +
+                    'ยอดนี้คือ "ก่อน" รอบปัจจุบัน — AI / การกรอกจะหักให้อัตโนมัติ' +
+                '</div>';
+
+            box.style.display = 'block';
+            box.style.background = '#F0FDF4';
+            box.style.borderColor = '#A7F3D0';
+            box.style.color = '#065F46';
+        } catch (error) {
+            // ถ้าดึงไม่ได้ ไม่ควรบล็อกการใช้งาน — ซ่อนกล่องเงียบๆ
+            if (box) box.style.display = 'none';
+        }
+    }
+
+    function scheduleCumulativeFetch() {
+        clearTimeout(cumulativeFetchTimer);
+        cumulativeFetchTimer = setTimeout(fetchCumulativeSummary, 500);
+    }
+
     async function handleImageUpload(input) {
         const file = input.files[0];
         if (!file) return;
