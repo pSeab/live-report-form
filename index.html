@@ -730,8 +730,8 @@
                     <select id="kol1" required>
                         <option value="" disabled selected>เลือกชื่อ KOL</option>
                         <option value="ของขวัญ">ของขวัญ</option><option value="ออย">ออย</option>
-                        <option value="พลอย">พลอย</option><option value="ฟางข้าว">ฟางข้าว</option>
-                        <option value="ปลา">ปลา</option><option value="ไอซ์">ไอซ์</option><option value="รัน">รัน</option>
+                        <option value="ฟางข้าว">ฟางข้าว</option><option value="เนย">เนย</option>
+                        <option value="รัน">รัน</option><option value="บิว">บิว</option>
                     </select>
                 </div>
             </div>
@@ -2033,9 +2033,7 @@
 ขายได้        : ${document.getElementById('orders1').value} ออเดอร์
 GMV          : ${document.getElementById('gmv1').value} ฿
 Ads            : ${document.getElementById('ads1').value} ฿
-ค่าคอม       : ${document.getElementById('commission_baht1').value} ฿
-
-💸 ยอดขายรวมรอบ KOL ${document.getElementById('kol1').value} ${document.getElementById('live_hours1').value} Hrs. : ${document.getElementById('gmv1').value} ฿ | Com ${document.getElementById('commission_percent1').value} % : ${document.getElementById('commission_baht1').value} ฿`;
+ค่าคอม       : ${document.getElementById('commission_baht1').value} ฿`;
 
         document.getElementById('outputResult1').value = template;
         document.getElementById('resultSection1').style.display = 'block';
